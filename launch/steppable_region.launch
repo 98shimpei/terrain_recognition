@@ -1,0 +1,16 @@
+<launch>
+  <node name="accumulated_steppable_region_publisher" pkg="terrain_recognition"
+        type="accumulated_steppable_region_publisher.py" output="screen">
+    <param name="grid_length"                 value="1.0"/>
+    <param name="update_pixel_erode"          value="25.0"/>
+    <param name="accumulate_length"           value="500"/>
+    <param name="accumulate_center_x"         value="150"/>
+    <param name="accumulate_center_y"         value="250"/>
+    <param name="trim_length"                 value="140"/>
+    <param name="trim_center_x"               value="70"/>
+    <param name="trim_center_y"               value="70"/>
+    <param name="fixed_frame"                 value="choreonoid_origin"/>
+    <param name="checkpoint_path"             value="$(find terrain_recognition)/scripts/checkpoint"/>
+    <param name="debug_output"                value="true"/>
+  </node>
+</launch>

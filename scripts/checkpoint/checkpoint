@@ -1,0 +1,2 @@
+model_checkpoint_path: "checkpoint_steppable_region"
+all_model_checkpoint_paths: "checkpoint_steppable_region"
