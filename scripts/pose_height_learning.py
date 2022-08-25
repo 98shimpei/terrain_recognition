@@ -85,25 +85,25 @@ x_test, y_test = generate_data(100)
 #----------------------------
 # 学習
 if "w" in args[3]:
-    model_pose = cnn_models.cnn_pose((H,W,C), "./checkpoint")
+    model_pose = cnn_models.cnn_pose((H,W,C), "../checkpoints/checkpoint")
 else:
     model_pose = cnn_models.cnn_pose((H,W,C), "")
 if "v" in args[3]:
     model_pose.summary()
 if "f" in args[3]:
     model_pose.fit(x_train, y_train[:,:,:,:2], batch_size=100, epochs=int(args[2]))
-    model_pose.save_weights('./checkpoint/checkpoint_pose')
+    model_pose.save_weights('../checkpoints/checkpoint/checkpoint_pose')
 
 
 if "w" in args[3]:
-    model_height = cnn_models.cnn_height((H,W,C), "./checkpoint")
+    model_height = cnn_models.cnn_height((H,W,C), "../checkpoints/checkpoint")
 else:
     model_height = cnn_models.cnn_height((H,W,C), "")
 if "v" in args[3]:
     model_height.summary()
 if "f" in args[3]:
     model_height.fit(x_train, y_train[:,:,:,2], batch_size=100, epochs=int(args[2]))
-    model_height.save_weights('./checkpoint/checkpoint_height')
+    model_height.save_weights('../checkpoints/checkpoint/checkpoint_height')
 #----------------------------
 
 #----------------------------

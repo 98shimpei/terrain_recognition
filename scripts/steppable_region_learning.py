@@ -98,14 +98,14 @@ x_test, y_test = generate_data(100)
 #----------------------------
 # 学習
 if "w" in args[3]:
-    model_steppable_region = cnn_models.cnn_steppable((H,W,C), "./checkpoint")
+    model_steppable_region = cnn_models.cnn_steppable((H,W,C), "../checkpoints/checkpoint")
 else:
     model_steppable_region = cnn_models.cnn_steppable_region((H,W,C), "")
 if "v" in args[3]:
     model_steppable_region.summary()
 if "f" in args[3]:
     model_steppable_region.fit(x_train, y_train, batch_size=100, epochs=int(args[2]))
-    model_steppable_region.save_weights('./checkpoint/checkpoint_steppable_region')
+    model_steppable_region.save_weights('../checkpoints/checkpoint/checkpoint_steppable_region')
 
 #----------------------------
 
