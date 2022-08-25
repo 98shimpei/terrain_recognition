@@ -100,7 +100,7 @@ x_test, y_test = generate_data(100)
 if "w" in args[3]:
     model_steppable_region = cnn_models.cnn_steppable((H,W,C), "../checkpoints/checkpoint")
 else:
-    model_steppable_region = cnn_models.cnn_steppable_region((H,W,C), "")
+    model_steppable_region = cnn_models.cnn_steppable((H,W,C), "")
 if "v" in args[3]:
     model_steppable_region.summary()
 if "f" in args[3]:
