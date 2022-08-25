@@ -14,6 +14,7 @@ import quaternion
 import copy
 import p2t
 import ros_numpy
+import cnn_models
 from sensor_msgs.msg import Image
 from jsk_recognition_msgs.msg import HeightmapConfig
 from jsk_recognition_msgs.msg import PolygonArray
@@ -50,9 +51,9 @@ class SteppableRegionPublisher:
 
         self.accumulated_steppable_image[150:350, 50:250] = np.ones((200, 200)) * 255
 
-        self.model_steppable = self.cnn_steppable((500, 300, 1))
-        self.model_height = self.cnn_height((500, 300, 1))
-        self.model_pose = self.cnn_pose((500, 300, 1))
+        self.model_steppable = cnn_models.cnn_steppable((500, 300, 1), self.checkpoint_path)
+        self.model_height = cnn_models.cnn_height((500, 300, 1), self.checkpoint_path)
+        self.model_pose = cnn_models.cnn_pose((500, 300, 1), self.checkpoint_path)
         self.height_publisher = rospy.Publisher('landing_height', OnlineFootStep, queue_size=1)
         self.landing_pose_publisher = rospy.Publisher('landing_pose_marker', Marker, queue_size = 1)
         self.polygon_publisher = rospy.Publisher('output_polygon', PolygonArray, queue_size=1)
@@ -520,97 +521,6 @@ class SteppableRegionPublisher:
 
     def t2pPointEqual(self, p, q):
         return p.x == q.x and p.y == q.y
-
-    def cnn_steppable(self, input_shape):
-        model = tef.keras.models.Sequential()
-
-        # conv1
-        model.add(tef.keras.layers.Conv2D(32, (11, 11), input_shape=input_shape))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv2
-        model.add(tef.keras.layers.Conv2D(32, (9, 9)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv3
-        model.add(tef.keras.layers.Conv2D(32, (9, 9)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv3
-        model.add(tef.keras.layers.Conv2D(32, (7, 7)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.Dense(2, activation='softmax'))
-
-        # 学習方法の設定
-        model.compile(optimizer='adam',loss='sparse_categorical_crossentropy',metrics=['accuracy'])
-
-        model.load_weights(self.checkpoint_path+'/checkpoint_steppable_region')
-
-        return model
-
-    def cnn_height(self, input_shape):
-        model = tef.keras.models.Sequential()
-
-        # conv1
-        model.add(tef.keras.layers.Conv2D(32, (5, 5), strides=2, input_shape=input_shape))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv2
-        model.add(tef.keras.layers.Conv2D(32, (3, 3)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv3
-        model.add(tef.keras.layers.Conv2D(32, (3, 3)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv4
-        model.add(tef.keras.layers.Conv2D(32, (5, 5)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.Dense(1, activation='linear'))
-
-        # 学習方法の設定
-        model.compile(optimizer='adam',loss='mse',metrics=['mae', 'mse'])
-
-        model.load_weights(self.checkpoint_path+'/checkpoint_height')
-
-        return model
-
-    def cnn_pose(self, input_shape):
-        model = tef.keras.models.Sequential()
-
-        # conv1
-        model.add(tef.keras.layers.Conv2D(32, (5, 5), strides=2, input_shape=input_shape))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv2
-        model.add(tef.keras.layers.Conv2D(32, (3, 3)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv3
-        model.add(tef.keras.layers.Conv2D(32, (3, 3)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.ReLU())
-
-        # conv4
-        model.add(tef.keras.layers.Conv2D(32, (5, 5)))
-        model.add(tef.keras.layers.BatchNormalization())
-        model.add(tef.keras.layers.Dense(2, activation='linear'))
-
-        # 学習方法の設定
-        model.compile(optimizer='adam',loss='mse',metrics=['mae', 'mse'])
-
-        model.load_weights(self.checkpoint_path+'/checkpoint_pose')
-
-        return model
-
 
 if __name__=='__main__':
     rospy.init_node('legpose_pub')
