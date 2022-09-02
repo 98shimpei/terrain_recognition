@@ -97,12 +97,17 @@ class SteppableRegionPublisher:
         #input_image = np.frombuffer(msg.data, dtype=np.float32).reshape(msg.height, msg.width, -1)
         input_image = ros_numpy.numpify(msg)
         median_image = cv2.medianBlur(input_image[:, :, 0], 5)
+        median_image = median_image - (median_image<-1e5)*median_image + (median_image<-1e5) * cv2.blur(median_image - (median_image<-1e5)*median_image, (9, 9)) / cv2.blur((median_image>-1e5).astype(float), (9, 9))
+        np.nan_to_num(median_image, copy=False, nan=-1e10)
+
         tmp, update_pixel = cv2.threshold(median_image, -1e5, 1, cv2.THRESH_BINARY)
         update_pixel = np.uint8(update_pixel)
         cv2.rectangle(update_pixel, (0, 0), (update_pixel.shape[1]-1, update_pixel.shape[0]-1), 0, thickness=1)
         update_pixel = cv2.erode(update_pixel, np.ones((3, 3), np.uint8), iterations = (int)(self.update_pixel_erode))
 
         a_time = rospy.Time.now()
+        if self.debug_output:
+            print("begin_a", (a_time - begin_time).secs, "s", (int)((a_time - begin_time).nsecs / 1000000), "ms")
         #steppable_regionの処理
 
         cnn_steppable_img = median_image.reshape((1, msg.height, msg.width, 1))
@@ -377,7 +382,7 @@ class SteppableRegionPublisher:
         visualized_image = np.zeros((self.accumulated_steppable_image.shape[0], self.accumulated_steppable_image.shape[1], 3), dtype=np.uint8)
         visualized_image[:, :, 0] = self.accumulated_steppable_image.copy()
         visualized_image[self.accumulate_center_y + self.heightmap_miny : self.accumulate_center_y + self.heightmap_miny + msg.height, self.accumulate_center_x + self.heightmap_minx : self.accumulate_center_x + self.heightmap_minx + msg.width, 1] = update_pixel.copy() * 100
-        visualized_image[self.accumulate_center_y + self.heightmap_miny : self.accumulate_center_y + self.heightmap_miny + msg.height, self.accumulate_center_x + self.heightmap_minx : self.accumulate_center_x + self.heightmap_minx + msg.width, 2] = (median_image.copy() * 255 * 1.0 + 120).astype(np.uint8)
+        visualized_image[self.accumulate_center_y + self.heightmap_miny : self.accumulate_center_y + self.heightmap_miny + msg.height, self.accumulate_center_x + self.heightmap_minx : self.accumulate_center_x + self.heightmap_minx + msg.width, 2] = (median_image.copy() * 255 * 1.0 + 80).astype(np.uint8)
         self.visualized_image_publisher.publish(ros_numpy.msgify(Image, visualized_image, encoding='bgr8'))
 
         trimmed_msg = ros_numpy.msgify(Image, visualized_trimmed_image, encoding='bgr8')
@@ -389,7 +394,8 @@ class SteppableRegionPublisher:
 
         if self.debug_output:
             print("e_end", (end_time - e_time).secs, "s", (int)((end_time - e_time).nsecs / 1000000), "ms")
-            print("all_time", (end_time - begin_time).secs, "s", (int)((end_time - begin_time).nsecs / 1000000), "ms")
+            print("                      all_time", (end_time - begin_time).secs, "s", (int)((end_time - begin_time).nsecs / 1000000), "ms")
+            print("                all_stamp_time", (end_time - msg.header.stamp).secs, "s", (int)((end_time - msg.header.stamp).nsecs / 1000000), "ms")
 
         #cv2.imshow('test1',self.accumulated_height_image[:, :]*3.0 + 0.2)
         #cv2.imshow('test2',self.accumulated_steppable_image)
