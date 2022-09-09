@@ -9,7 +9,7 @@
     <param name="trim_length"                 value="140"/>
     <param name="trim_center_x"               value="70"/>
     <param name="trim_center_y"               value="70"/>
-    <param name="fixed_frame"                 value="choreonoid_origin"/>
+    <param name="fixed_frame"                 value="leg_odom"/>
     <param name="checkpoint_path"             value="$(find terrain_recognition)/checkpoints/checkpoint"/>
     <param name="debug_output"                value="true"/>
   </node>

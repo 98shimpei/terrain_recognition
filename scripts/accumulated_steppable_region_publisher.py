@@ -383,7 +383,9 @@ class SteppableRegionPublisher:
         visualized_image[:, :, 0] = self.accumulated_steppable_image.copy()
         visualized_image[self.accumulate_center_y + self.heightmap_miny : self.accumulate_center_y + self.heightmap_miny + msg.height, self.accumulate_center_x + self.heightmap_minx : self.accumulate_center_x + self.heightmap_minx + msg.width, 1] = update_pixel.copy() * 100
         visualized_image[self.accumulate_center_y + self.heightmap_miny : self.accumulate_center_y + self.heightmap_miny + msg.height, self.accumulate_center_x + self.heightmap_minx : self.accumulate_center_x + self.heightmap_minx + msg.width, 2] = (median_image.copy() * 255 * 1.0 + 80).astype(np.uint8)
+        visualized_image = cv2.flip(visualized_image, 0)
         self.visualized_image_publisher.publish(ros_numpy.msgify(Image, visualized_image, encoding='bgr8'))
+        visualized_trimmed_image = cv2.flip(visualized_trimmed_image, 0)
 
         trimmed_msg = ros_numpy.msgify(Image, visualized_trimmed_image, encoding='bgr8')
         trimmed_msg.header = copy.deepcopy(msg.header)
