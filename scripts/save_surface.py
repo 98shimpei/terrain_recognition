@@ -14,6 +14,11 @@ import datetime
 from sensor_msgs.msg import Image
 #import cnn_models
 
+args = sys.argv
+if len(args) == 1:
+    args.append("")
+print(args)
+
 class SurfaceSaver:
     def __init__(self):
         self.drawing = False
@@ -26,21 +31,23 @@ class SurfaceSaver:
 
     def mousePoints(self, event, x, y, flags, params):
         if event == cv2.EVENT_LBUTTONDOWN:
-            self.mouse_x1 = self.mouse_x2 = x
-            self.mouse_y1 = self.mouse_y2 = y
+            self.mouse_x1 = self.mouse_x2 = math.floor(x/2.0)
+            self.mouse_y1 = self.mouse_y2 = math.floor(y/2.0)
             self.drawing = True
         elif event == cv2.EVENT_MOUSEMOVE:
             if self.drawing:
-                self.mouse_x2 = x
-                self.mouse_y2 = y
+                self.mouse_x2 = math.floor(x/2.0)
+                self.mouse_y2 = math.floor(y/2.0)
         elif event == cv2.EVENT_LBUTTONUP:
-            self.mouse_x2 = x
-            self.mouse_y2 = y
+            self.mouse_x2 = math.floor(x/2.0)
+            self.mouse_y2 = math.floor(y/2.0)
             self.drawing = False
 
     def surfaceSaver(self, msg):
         input_image = ros_numpy.numpify(msg)
         input_image = input_image[:, :, 0]
+        input_image = input_image - (input_image<-1e5)*input_image + (input_image<-1e5) * cv2.blur(input_image - (input_image<-1e5)*input_image, (9, 9)) / cv2.blur((input_image>-1e5).astype(float), (9, 9))
+        np.nan_to_num(input_image, copy=False, nan=-1e10)
         vision_image = input_image.copy()
         vision_image = np.where(vision_image > 0.5, 0.5, vision_image)
         vision_image = np.where(vision_image < -0.5, -0.5, vision_image)
@@ -50,33 +57,57 @@ class SurfaceSaver:
             self.color += 0.014
             if self.color > 2:
                 self.color -= 2
-            if self.mouse_x1 != self.mouse_x2:
+            if self.mouse_x2 < 0 or self.mouse_y2 < 0: #未選択
+                pass
+            elif self.mouse_x1 == self.mouse_x2 and self.mouse_y1 == self.mouse_y2: #terrain
+                cv2.circle(tmp_image, (self.mouse_x1, self.mouse_y1), 2, math.fabs(self.color-1), thickness=-1)
+                cv2.rectangle(tmp_image, (self.mouse_x1-10, self.mouse_y1-10), (self.mouse_x2+10, self.mouse_y2+10), math.fabs(self.color - 1), 2)
+                cv2.rectangle(tmp_image, (self.mouse_x1-23, self.mouse_y1-23), (self.mouse_x2+23, self.mouse_y2+23), math.fabs(self.color - 1), 2)
+            else: #surface
                 cv2.rectangle(tmp_image, (self.mouse_x1, self.mouse_y1), (self.mouse_x2, self.mouse_y2), math.fabs(self.color - 1), 2)
+            tmp_image = cv2.resize(tmp_image, (tmp_image.shape[1]*2, tmp_image.shape[0]*2))
             cv2.imshow("surface_saver", tmp_image)
             cv2.setMouseCallback("surface_saver", self.mousePoints)
+
             key = cv2.waitKey(10)
-            if key == 13: #Enter
-                if self.mouse_x1 > self.mouse_x2:
-                    tmp = self.mouse_x1
-                    self.mouse_x1 = self.mouse_x2
-                    self.mouse_x2 = tmp
-                if self.mouse_y1 > self.mouse_y2:
-                    tmp = self.mouse_y1
-                    self.mouse_y1 = self.mouse_y2
-                    self.mouse_y2 = tmp
-                if self.mouse_x2 - self.mouse_x1 < 47 or self.mouse_y2 - self.mouse_y1 < 47:
-                    print("size error")
-                    self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
-                    break
-                save_image = input_image[self.mouse_y1 : self.mouse_y2, self.mouse_x1 : self.mouse_x2]
-                np.savetxt("../surfaces/"+datetime.datetime.now().strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
-                self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
-                print("save image")
-                break
-            elif key == 46 or key == 8 or key == 255: #delete, backspace
+            if key == 46 or key == 8 or key == 255: #delete, backspace
                 self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                 print("cancel")
                 break
+
+            if self.mouse_x2 < 0 or self.mouse_y2 < 0: #未選択
+                pass
+            elif self.mouse_x1 == self.mouse_x2 and self.mouse_y1 == self.mouse_y2: #terrain
+                save_image = input_image[self.mouse_y1-23:self.mouse_y2+24, self.mouse_x1-23:self.mouse_x2+24]
+                if key == 111: #O
+                    np.savetxt("../terrains/steppable/"+args[1]+datetime.datetime.now().strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
+                    self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
+                    print("save steppable image")
+                    break
+                elif key == 120: #X
+                    np.savetxt("../terrains/unsteppable/"+args[1]+datetime.datetime.now().strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
+                    self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
+                    print("save unsteppable image")
+                    break
+            else: #surfece
+                if key == 13: #Enter
+                    if self.mouse_x1 > self.mouse_x2:
+                        tmp = self.mouse_x1
+                        self.mouse_x1 = self.mouse_x2
+                        self.mouse_x2 = tmp
+                    if self.mouse_y1 > self.mouse_y2:
+                        tmp = self.mouse_y1
+                        self.mouse_y1 = self.mouse_y2
+                        self.mouse_y2 = tmp
+                    if self.mouse_x2 - self.mouse_x1 < 47 or self.mouse_y2 - self.mouse_y1 < 47:
+                        print("size error")
+                        self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
+                        break
+                    save_image = input_image[self.mouse_y1 : self.mouse_y2, self.mouse_x1 : self.mouse_x2]
+                    np.savetxt("../surfaces/"+args[1]+datetime.datetime.now().strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
+                    self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
+                    print("save surface image")
+                    break
 
 if __name__ == "__main__":
     rospy.init_node('surface_saver')
