@@ -22,19 +22,14 @@ print(args)
 #----------------------------
 # データの作成
 
-steppable_terrains = []
-unsteppable_terrains = []
+terrains_x = []
+terrains_y = []
 surfaces = []
-for filename in os.listdir("../terrains/steppable"):
-    steppable_terrains.append(np.loadtxt("../terrains/steppable/"+filename, delimiter=","))
-for filename in os.listdir("../terrains/unsteppable"):
-    unsteppable_terrains.append(np.loadtxt("../terrains/unsteppable/"+filename, delimiter=","))
+for filename in os.listdir("../terrains/x"):
+    terrains_x.append(np.loadtxt("../terrains/x/"+filename, delimiter=","))
+    terrains_y.append(np.loadtxt("../terrains/y/"+filename, delimiter=","))
 for filename in os.listdir("../surfaces"):
     surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
-
-print(len(steppable_terrains))
-print(len(unsteppable_terrains))
-print(len(surfaces))
 
 pitch = np.zeros((47, 47, 1))
 roll  = np.zeros((47, 47, 1))
@@ -53,7 +48,7 @@ def randomize(x, y):
 def generate_data(num):
     global pitch, roll, scale, steppable_terrains, unsteppable_terrains, surfaces
     x_data = np.zeros((num, 47, 47, 1))
-    y_data = np.ones((num, 1, 1, 1))
+    y_data = np.zeros((num, 5, 5, 1))
 
     for i in range(num):
         #surface
@@ -68,56 +63,54 @@ def generate_data(num):
         x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
 
         #terrain
-        #if i < num/2:
-        #    terrain_index = math.floor(random.random()*len(steppable_terrains))
-        #    x_data[i, :, :, 0] += steppable_terrains[terrain_index] * -1.0
-        #    y_data[i] = 1
-        #else:
-        #    terrain_index = math.floor(random.random()*len(unsteppable_terrains))
-        #    x_data[i, :, :, 0] += unsteppable_terrains[terrain_index] * -1.0
-        #    y_data[i] = 0
+        terrain_index = math.floor(random.random()*len(terrains_x))
+        x_data[i, :, :, 0] += terrains_x[terrain_index]
+        y_data[i, :, :, 0] += terrains_y[terrain_index]
 
-    for i in range(math.floor(num*0.7)):
-        begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
+    #for i in range(math.floor(num*0.7)):
+    #    begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
 
-        l = end - begin
-        if l == 0 :
-            continue
-        h = random.random() * 0.6 - 0.3
-        x_data[i, begin : end, :, 0] += np.ones((l, x_data.shape[2])) * h
-        if h > 0.02:
-            if begin > 13 or end < 33:
-                y_data[i, 0, 0] = 0
-        elif h < -0.02:
-            if not (end <= 13 or begin >= 34 or (begin >= 17 and end <=30)):
-                y_data[i, 0, 0] = 0
-    for i in range(num):
-        theta = random.random() * 60 + 60
-        M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
-        x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
-    x_data, y_data = randomize(x_data, y_data)
+    #    l = end - begin
+    #    if l == 0 :
+    #        continue
+    #    h = random.random() * 0.6 - 0.3
+    #    x_data[i, begin : end, :, 0] += np.ones((l, x_data.shape[2])) * h
+    #    if h > 0.02:
+    #        if begin > 13 or end < 33:
+    #            y_data[i] = np.zeros((3, 3, 1))
+    #    elif h < -0.02:
+    #        if not (end <= 13 or begin >= 34 or (begin >= 17 and end <=30)):
+    #            y_data[i] = np.zeros((3, 3, 1))
+    #for i in range(num):
+    #    theta = random.random() * 60 + 60
+    #    M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
+    #    x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
+    #x_data, y_data = randomize(x_data, y_data)
 
-    for i in range(math.floor(num*0.7)):
-        begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
+    #for i in range(math.floor(num*0.7)):
+    #    begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
 
-        l = end - begin
-        if l == 0 :
-            continue
-        h = random.random() * 0.6 - 0.3
-        x_data[i, begin : end, :, 0] += np.ones((l, x_data.shape[2])) * h
-        if h > 0.02:
-            if begin > 13 or end < 33:
-                y_data[i, 0, 0] = 0
-        elif h < -0.02:
-            if not (end <= 13 or begin >= 34 or (begin >= 17 and end <=30)):
-                y_data[i, 0, 0] = 0
-    x_data, y_data = randomize(x_data, y_data)
+    #    l = end - begin
+    #    if l == 0 :
+    #        continue
+    #    h = random.random() * 0.6 - 0.3
+    #    x_data[i, begin : end, :, 0] += np.ones((l, x_data.shape[2])) * h
+    #    if h > 0.02:
+    #        if begin > 13 or end < 33:
+    #            y_data[i] = np.zeros((3, 3, 1))
+    #    elif h < -0.02:
+    #        if not (end <= 13 or begin >= 34 or (begin >= 17 and end <=30)):
+    #            y_data[i] = np.zeros((3, 3, 1))
+    #x_data, y_data = randomize(x_data, y_data)
 
-    for i in range(num):
+    #for i in range(num):
+
         #rotate
         theta = random.random() * 360
         M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
         x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
+        M = cv2.getRotationMatrix2D((math.floor(y_data.shape[2] / 2.), math.floor(y_data.shape[1] / 2.)), theta, 1)
+        y_data[i, :, :, 0] = cv2.warpAffine(y_data[i], M, (y_data.shape[2], y_data.shape[1]))
 
         #tilt
         p = 2.0*random.random() - 1.0
@@ -126,7 +119,10 @@ def generate_data(num):
         x_data[i] += p * pitch + r * roll + s * scale + 0.05*np.random.rand(47, 47, 1) - 0.025 * np.ones((47, 47, 1))
     x_data, y_data = randomize(x_data, y_data)
 
-    x_data = x_data[:, 7:40, 7:40]
+    x_data = x_data[:, 3:44, 3:44]
+    y_data = y_data[:, 1:4, 1:4]
+    y_data = y_data > 0.5
+    y_data = y_data.astype(np.int)
     return x_data, y_data
 
 x_train, y_train = generate_data(int(args[1]))
@@ -135,9 +131,9 @@ x_test, y_test = generate_data(100)
 #----------------------------
 # 学習
 if "w" in args[3]:
-    model_steppable_region = cnn_models.cnn_steppable((33,33,1), "../checkpoints/checkpoint")
+    model_steppable_region = cnn_models.cnn_steppable((41,41,1), "../checkpoints/checkpoint")
 else:
-    model_steppable_region = cnn_models.cnn_steppable((33,33,1), "")
+    model_steppable_region = cnn_models.cnn_steppable((41,41,1), "")
 if "v" in args[3]:
     model_steppable_region.summary()
 if "f" in args[3]:
