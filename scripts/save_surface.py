@@ -86,14 +86,14 @@ class SurfaceSaver:
                 if key == 111: #O
                     nowdate = datetime.datetime.now()
                     np.savetxt("../terrains/x/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
-                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.ones((3, 3)), delimiter=",")
+                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.ones((5, 5)), delimiter=",")
                     self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                     print("save steppable image")
                     break
                 elif key == 120: #X
                     nowdate = datetime.datetime.now()
                     np.savetxt("../terrains/x/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
-                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.zeros((3, 3)), delimiter=",")
+                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.zeros((5, 5)), delimiter=",")
                     self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                     print("save steppable image")
                     break
