@@ -6,7 +6,7 @@ def cnn_steppable(input_shape, checkpoint_path):
     model = tef.keras.models.Sequential()
 
     # conv1
-    model.add(tef.keras.layers.Conv2D(16, (3, 3), strides=(2, 2), input_shape=input_shape))
+    model.add(tef.keras.layers.Conv2D(16, (5, 5), strides=(2, 2), input_shape=input_shape))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.ReLU())
 
@@ -16,7 +16,7 @@ def cnn_steppable(input_shape, checkpoint_path):
     #model.add(tef.keras.layers.ReLU())
 
     # conv2
-    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
+    model.add(tef.keras.layers.Conv2D(16, (5, 5)))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.ReLU())
 
@@ -41,12 +41,12 @@ def cnn_steppable(input_shape, checkpoint_path):
     #model.add(tef.keras.layers.ReLU())
 
     # conv2
-    model.add(tef.keras.layers.Conv2D(16, (9, 9)))
+    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.ReLU())
 
     # conv3
-    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
+    model.add(tef.keras.layers.Conv2D(16, (5, 5)))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.Dense(2, activation='softmax'))
 

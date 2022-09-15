@@ -50,17 +50,16 @@ for n in range(int(args[1])):
     max_h = np.max(x_data[13:34, 13:34])
     x_data -= max_h
     median = cv2.medianBlur(x_data.astype(np.float32), 5)
-    if np.max(x_data) > 0.03:
-        y_data = np.zeros((5, 5))
-    else:
-        for y in range(-2, 3):
-            for x in range(-2, 3):
-                if (((np.max(median[14+y,14+x:24+x]))>-0.03 and np.max(median[14+y,23+x:33+x])>-0.03) and
-                    ((np.max(median[32+y,14+x:24+x]))>-0.03 and np.max(median[32+y,23+x:33+x])>-0.03) and
-                    ((np.max(median[14+y:24+y,14+x]))>-0.03 and np.max(median[23+y:33+y,14+x])>-0.03) and
-                    ((np.max(median[14+y:24+y,32+x]))>-0.03 and np.max(median[23+y:33+y,32+x])>-0.03)):
-                    y_data[1+y,1+x]=1
-                else:
-                    y_data[1+y,1+x]=0
+    for y in range(-2, 3):
+        for x in range(-2, 3):
+            if np.max(x_data[7:40,7:40]) > 0.03 or np.max(x_data[5:42,12:35]) > 0.03 or np.max(x_data[12:35,5:42]) > 0.03:#遊脚
+                y_data[1+y,1+x] = 0
+            elif(((np.max(median[14+y,14+x:24+x]))>-0.03 and np.max(median[14+y,23+x:33+x])>-0.03) and
+                 ((np.max(median[32+y,14+x:24+x]))>-0.03 and np.max(median[32+y,23+x:33+x])>-0.03) and
+                 ((np.max(median[14+y:24+y,14+x]))>-0.03 and np.max(median[23+y:33+y,14+x])>-0.03) and
+                 ((np.max(median[14+y:24+y,32+x]))>-0.03 and np.max(median[23+y:33+y,32+x])>-0.03)):
+                y_data[1+y,1+x]=1
+            else:
+                y_data[1+y,1+x]=0
     np.savetxt("../terrains/x/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(n)+".csv", x_data, delimiter=",")
     np.savetxt("../terrains/y/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(n)+".csv", y_data, delimiter=",")
