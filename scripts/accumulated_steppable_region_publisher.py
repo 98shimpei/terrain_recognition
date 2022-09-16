@@ -186,6 +186,7 @@ class SteppableRegionPublisher:
         #ここで拡大縮小、輪郭抽出等
         trimmed_image = np.uint8(self.accumulated_steppable_image[self.accumulate_center_y - self.trim_center_y : self.accumulate_center_y - self.trim_center_y + self.trim_length, self.accumulate_center_x - self.trim_center_x : self.accumulate_center_x - self.trim_center_x + self.trim_length].copy())
         trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_CLOSE, np.ones((5, 5)))
+        trimmed_image = cv2.erode(trimmed_image, np.ones((5, 5), np.uint8))
         trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((5, 5)))
         trimmed_image = cv2.dilate(trimmed_image, np.ones((3, 3), np.uint8))
 

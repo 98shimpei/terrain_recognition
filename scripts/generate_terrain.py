@@ -21,7 +21,7 @@ nowdate = datetime.datetime.now()
 for n in range(int(args[1])):
     x_data = np.zeros((47, 47))
     y_data = np.zeros((5, 5))
-    for i in range(math.floor(random.random() * 2)):
+    for i in range(math.floor(random.random() * 1.7 + 0.9)):
         if random.random() < 0.7: #長方形溝
             begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
             if begin == end:
@@ -52,7 +52,7 @@ for n in range(int(args[1])):
     median = cv2.medianBlur(x_data.astype(np.float32), 5)
     for y in range(-2, 3):
         for x in range(-2, 3):
-            if np.max(x_data[7:40,7:40]) > 0.03 or np.max(x_data[5:42,12:35]) > 0.03 or np.max(x_data[12:35,5:42]) > 0.03:#遊脚
+            if np.max(x_data[5:42,5:42]) > 0.03 or np.max(x_data[3:44,10:37]) > 0.03 or np.max(x_data[10:37,3:44]) > 0.03:#遊脚
                 y_data[1+y,1+x] = 0
             elif(((np.max(median[14+y,14+x:24+x]))>-0.03 and np.max(median[14+y,23+x:33+x])>-0.03) and
                  ((np.max(median[32+y,14+x:24+x]))>-0.03 and np.max(median[32+y,23+x:33+x])>-0.03) and
