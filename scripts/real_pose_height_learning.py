@@ -30,7 +30,7 @@ for filename in os.listdir("../surfaces"):
     surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
 steppable_terrains = [terrains_x[i] for i in range(len(terrains_y)) if np.sum(terrains_y[i])==25]
 for filename in os.listdir("../terrains/pose"):
-    steppable_terrains.append(np.loadtxt("../terrains/pose/"+filename, delimiter=","))
+    pose_terrains.append(np.loadtxt("../terrains/pose/"+filename, delimiter=","))
 
 #----------------------------
 # データの作成
@@ -61,20 +61,22 @@ def generate_data(num):
         x_data[i, :, :, 0] += surfaces[surface_index][surface_y:surface_y+21, surface_x:surface_x+21]
         
         #terrain
-        x_data[i, :, :, 0] += steppable_terrains[math.floor(random.random()*len(steppable_terrains))][13:34,13:34]
-
-        for j in range(2):
-            h = random.random()*0.3
-            l = math.floor(random.random()*8+1)
-            tmp = random.random()
-            if tmp < 0.1: #端を消す
-                x_data[i, 0:l, :, 0] -= h * np.ones((l, x_data.shape[2]))
-            elif tmp < 0.2:
-                x_data[i, x_data.shape[1]-l:x_data.shape[1], :, 0] -= h * np.ones((l, x_data.shape[2]))
-            elif tmp < 0.3:
-                x_data[i, :, 0:l, 0] -= h * np.ones((x_data.shape[1], l))
-            elif tmp < 0.4:
-                x_data[i, :, x_data.shape[2]-l:x_data.shape[2], 0] -= h * np.ones((x_data.shape[1], l))
+        if i < num*1.0:
+            x_data[i, :, :, 0] += steppable_terrains[math.floor(random.random()*len(steppable_terrains))][13:34,13:34]
+            for j in range(2):
+                h = random.random()*0.3
+                l = math.floor(random.random()*8+1)
+                tmp = random.random()
+                if tmp < 0.1: #端を消す
+                    x_data[i, 0:l, :, 0] -= h * np.ones((l, x_data.shape[2]))
+                elif tmp < 0.2:
+                    x_data[i, x_data.shape[1]-l:x_data.shape[1], :, 0] -= h * np.ones((l, x_data.shape[2]))
+                elif tmp < 0.3:
+                    x_data[i, :, 0:l, 0] -= h * np.ones((x_data.shape[1], l))
+                elif tmp < 0.4:
+                    x_data[i, :, x_data.shape[2]-l:x_data.shape[2], 0] -= h * np.ones((x_data.shape[1], l))
+        else:
+            x_data[i, :, :, 0] += pose_terrains[math.floor(random.random()*len(pose_terrains))][13:34,13:34]
 
         #rotate
         theta = random.random() * 360
