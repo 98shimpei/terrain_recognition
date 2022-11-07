@@ -54,17 +54,17 @@ class SteppableRegionPublisher:
         self.model_steppable = cnn_models.cnn_steppable((500, 300, 1), self.checkpoint_path)
         self.model_height = cnn_models.cnn_height((500, 300, 1), self.checkpoint_path)
         self.model_pose = cnn_models.cnn_pose((500, 300, 1), self.checkpoint_path)
-        self.height_publisher = rospy.Publisher('landing_height', OnlineFootStep, queue_size=1)
+        self.height_publisher = rospy.Publisher('AutoStabilizerROSBridge/landing_height', OnlineFootStep, queue_size=1)
         self.landing_pose_publisher = rospy.Publisher('landing_pose_marker', Marker, queue_size = 1)
         self.polygon_publisher = rospy.Publisher('output_polygon', PolygonArray, queue_size=1)
         self.convex_publisher = rospy.Publisher('combined_meshed_polygons', PolygonArray, queue_size=1)
-        self.region_publisher = rospy.Publisher('steppable_region', SteppableRegion, queue_size=1)
+        self.region_publisher = rospy.Publisher('AutoStabilizerROSBridge/steppable_region', SteppableRegion, queue_size=1)
         self.visualized_image_publisher = rospy.Publisher('steppable_image_output', Image, queue_size=1)
         self.visualized_trimmed_image_publisher = rospy.Publisher('trimmed_image_output', Image, queue_size=1)
 
         rospy.Subscriber('rt_filtered_current_heightmap/output/config', HeightmapConfig, self.heightmapConfigCallback, queue_size=1)
         rospy.Subscriber('rt_filtered_current_heightmap/output', Image, self.heightmapCallback, queue_size=1, buff_size=2**24)
-        rospy.Subscriber('landing_target', OnlineFootStep, self.targetCallback, queue_size=1)
+        rospy.Subscriber('AutoStabilizerROSBridge/landing_target', OnlineFootStep, self.targetCallback, queue_size=1)
 
     def heightmapConfigCallback(self, msg):
         self.heightmap_config_flag = True
