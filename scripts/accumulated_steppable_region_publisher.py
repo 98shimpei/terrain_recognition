@@ -117,11 +117,11 @@ class SteppableRegionPublisher:
         cnn_steppable_img = cnn_steppable_img.reshape((cnn_steppable_img.shape[1], cnn_steppable_img.shape[2], 1))
         cnn_steppable_img = np.uint8(cnn_steppable_img*255)
         #strideがある場合resize, resizeの有無でshapeが変わるので注意
-        #cnn_steppable_img = cv2.resize(cnn_steppable_img, (msg.width, msg.height))
+        cnn_steppable_img = cv2.resize(cnn_steppable_img, (cnn_steppable_img.shape[1]*2, cnn_steppable_img.shape[0]*2))
         tmp_img = np.zeros((msg.height, msg.width))
         tmpy = math.floor((msg.height - cnn_steppable_img.shape[0])/2)
         tmpx = math.floor((msg.width - cnn_steppable_img.shape[1])/2)
-        tmp_img[tmpy : tmpy+cnn_steppable_img.shape[0], tmpx : tmpx+cnn_steppable_img.shape[1]] = cnn_steppable_img[:, :, 0].copy()
+        tmp_img[tmpy : tmpy+cnn_steppable_img.shape[0], tmpx : tmpx+cnn_steppable_img.shape[1]] = cnn_steppable_img.copy()
         cnn_steppable_img = tmp_img.copy()
 
 

@@ -119,8 +119,8 @@ def generate_data(num):
         x_data[i] += p * pitch + r * roll + s * scale + 0.05*np.random.rand(47, 47, 1) - 0.025 * np.ones((47, 47, 1))
     x_data, y_data = randomize(x_data, y_data)
 
-    x_data = x_data[:, 4:43, 4:43]
-    y_data = y_data[:, 1:4, 1:4]
+    x_data = x_data[:, 5:42, 5:42]
+    y_data = y_data[:, 2:3, 2:3]
     y_data = y_data > 0.5
     y_data = y_data.astype(np.int)
     return x_data, y_data
@@ -131,9 +131,9 @@ x_test, y_test = generate_data(100)
 #----------------------------
 # 学習
 if "w" in args[3]:
-    model_steppable_region = cnn_models.cnn_steppable((39,39,1), "../checkpoints/checkpoint")
+    model_steppable_region = cnn_models.cnn_steppable((37,37,1), "../checkpoints/checkpoint")
 else:
-    model_steppable_region = cnn_models.cnn_steppable((39,39,1), "")
+    model_steppable_region = cnn_models.cnn_steppable((37,37,1), "")
 if "v" in args[3]:
     model_steppable_region.summary()
 if "f" in args[3]:

@@ -54,10 +54,10 @@ for n in range(int(args[1])):
         for x in range(-2, 3):
             if np.max(x_data[5:42,5:42]) > 0.03 or np.max(x_data[3:44,10:37]) > 0.03 or np.max(x_data[10:37,3:44]) > 0.03:#遊脚
                 y_data[1+y,1+x] = 0
-            elif(((np.max(median[14+y,14+x:24+x]))>-0.03 and np.max(median[14+y,23+x:33+x])>-0.03) and
-                 ((np.max(median[32+y,14+x:24+x]))>-0.03 and np.max(median[32+y,23+x:33+x])>-0.03) and
-                 ((np.max(median[14+y:24+y,14+x]))>-0.03 and np.max(median[23+y:33+y,14+x])>-0.03) and
-                 ((np.max(median[14+y:24+y,32+x]))>-0.03 and np.max(median[23+y:33+y,32+x])>-0.03)):
+            elif(((np.max(median[14+y,14+x:24+x]))>-0.02 and np.max(median[14+y,23+x:33+x])>-0.02) and
+                 ((np.max(median[32+y,14+x:24+x]))>-0.02 and np.max(median[32+y,23+x:33+x])>-0.02) and
+                 ((np.max(median[14+y:24+y,14+x]))>-0.02 and np.max(median[23+y:33+y,14+x])>-0.02) and
+                 ((np.max(median[14+y:24+y,32+x]))>-0.02 and np.max(median[23+y:33+y,32+x])>-0.02)):
                 y_data[1+y,1+x]=1
             else:
                 y_data[1+y,1+x]=0

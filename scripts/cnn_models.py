@@ -25,26 +25,6 @@ def cnn_steppable(input_shape, checkpoint_path):
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.ReLU())
 
-    # conv2
-    model.add(tef.keras.layers.Conv2DTranspose(16, (3, 3), strides=(2, 2)))
-    model.add(tef.keras.layers.BatchNormalization())
-    model.add(tef.keras.layers.ReLU())
-
-    ## conv2
-    #model.add(tef.keras.layers.Conv2D(16, (3, 3)))
-    #model.add(tef.keras.layers.BatchNormalization())
-    #model.add(tef.keras.layers.ReLU())
-
-    ## conv2
-    #model.add(tef.keras.layers.Conv2DTranspose(16, (3, 3), strides=(2, 2)))
-    #model.add(tef.keras.layers.BatchNormalization())
-    #model.add(tef.keras.layers.ReLU())
-
-    # conv2
-    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
-    model.add(tef.keras.layers.BatchNormalization())
-    model.add(tef.keras.layers.ReLU())
-
     # conv3
     model.add(tef.keras.layers.Conv2D(16, (5, 5)))
     model.add(tef.keras.layers.BatchNormalization())
