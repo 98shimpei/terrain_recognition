@@ -185,6 +185,7 @@ class SteppableRegionPublisher:
 
         #ここで拡大縮小、輪郭抽出等
         trimmed_image = np.uint8(self.accumulated_steppable_image[self.accumulate_center_y - self.trim_center_y : self.accumulate_center_y - self.trim_center_y + self.trim_length, self.accumulate_center_x - self.trim_center_x : self.accumulate_center_x - self.trim_center_x + self.trim_length].copy())
+        trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((3, 3)))
         trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_CLOSE, np.ones((5, 5)))
         trimmed_image = cv2.erode(trimmed_image, np.ones((5, 5), np.uint8))
         trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((5, 5)))
@@ -224,7 +225,7 @@ class SteppableRegionPublisher:
             if hierarchy[0, i, 3] != -1: #穴は後で
                 continue
             if cv2.contourArea(contours[i]) > size_threshold:
-                approx = cv2.approxPolyDP(contours[i], 1.5, True)
+                approx = cv2.approxPolyDP(contours[i], 1.0, True)
                 if len(approx) >= 3:
                     tmp = []
                     #print("shape")
@@ -236,7 +237,7 @@ class SteppableRegionPublisher:
                     j = hierarchy[0, i, 2] #first hole
                     while j != -1:
                         if cv2.contourArea(contours[j]) > size_threshold:
-                            approx_hole = cv2.approxPolyDP(contours[j], 1.5, True)
+                            approx_hole = cv2.approxPolyDP(contours[j], 1.0, True)
                             if len(approx_hole) >= 3:
                                 tmp_hole = []
                                 #print("hole")

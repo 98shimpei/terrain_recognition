@@ -48,7 +48,7 @@ def randomize(x, y):
 def generate_data(num):
     global pitch, roll, scale, steppable_terrains, unsteppable_terrains, surfaces
     x_data = np.zeros((num, 47, 47, 1))
-    y_data = np.zeros((num, 5, 5, 1))
+    y_data = np.zeros((num, 1, 1, 1))
 
     for i in range(num):
         #surface
@@ -65,7 +65,7 @@ def generate_data(num):
         #terrain
         terrain_index = math.floor(random.random()*len(terrains_x))
         x_data[i, :, :, 0] += terrains_x[terrain_index]
-        y_data[i, :, :, 0] += terrains_y[terrain_index]
+        y_data[i, 0, 0, 0] += terrains_y[terrain_index]
 
     #for i in range(math.floor(num*0.7)):
     #    begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
@@ -109,8 +109,8 @@ def generate_data(num):
         theta = random.random() * 360
         M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
         x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
-        M = cv2.getRotationMatrix2D((math.floor(y_data.shape[2] / 2.), math.floor(y_data.shape[1] / 2.)), theta, 1)
-        y_data[i, :, :, 0] = cv2.warpAffine(y_data[i], M, (y_data.shape[2], y_data.shape[1]))
+        #M = cv2.getRotationMatrix2D((math.floor(y_data.shape[2] / 2.), math.floor(y_data.shape[1] / 2.)), theta, 1)
+        #y_data[i, :, :, 0] = cv2.warpAffine(y_data[i], M, (y_data.shape[2], y_data.shape[1]))
 
         #tilt
         p = 2.0*random.random() - 1.0
@@ -120,7 +120,6 @@ def generate_data(num):
     x_data, y_data = randomize(x_data, y_data)
 
     x_data = x_data[:, 5:42, 5:42]
-    y_data = y_data[:, 2:3, 2:3]
     y_data = y_data > 0.5
     y_data = y_data.astype(np.int)
     return x_data, y_data
