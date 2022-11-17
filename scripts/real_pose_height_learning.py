@@ -28,7 +28,7 @@ for filename in os.listdir("../terrains/x"):
     terrains_y.append(np.loadtxt("../terrains/y/"+filename, delimiter=","))
 for filename in os.listdir("../surfaces"):
     surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
-steppable_terrains = [terrains_x[i] for i in range(len(terrains_y)) if np.sum(terrains_y[i])==25]
+steppable_terrains = [terrains_x[i] for i in range(len(terrains_y)) if np.sum(terrains_y[i])==1]
 for filename in os.listdir("../terrains/pose"):
     pose_terrains.append(np.loadtxt("../terrains/pose/"+filename, delimiter=","))
 
