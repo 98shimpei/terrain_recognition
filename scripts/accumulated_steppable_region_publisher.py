@@ -15,6 +15,7 @@ import copy
 import p2t
 import ros_numpy
 import cnn_models
+import threading
 from sensor_msgs.msg import Image
 from jsk_recognition_msgs.msg import HeightmapConfig
 from jsk_recognition_msgs.msg import PolygonArray
@@ -54,6 +55,9 @@ class SteppableRegionPublisher:
         self.model_steppable = cnn_models.cnn_steppable((500, 300, 1), self.checkpoint_path)
         self.model_height = cnn_models.cnn_height((500, 300, 1), self.checkpoint_path)
         self.model_pose = cnn_models.cnn_pose((500, 300, 1), self.checkpoint_path)
+
+        self.lock = threading.Lock()
+
         self.height_publisher = rospy.Publisher('AutoStabilizerROSBridge/landing_height', OnlineFootStep, queue_size=1)
         self.landing_pose_publisher = rospy.Publisher('landing_pose_marker', Marker, queue_size = 1)
         self.polygon_publisher = rospy.Publisher('output_polygon', PolygonArray, queue_size=1)
@@ -79,19 +83,6 @@ class SteppableRegionPublisher:
             print("stamp_begin", (begin_time - msg.header.stamp).secs, "s", (int)((begin_time - msg.header.stamp).nsecs / 1000000), "ms")
 
         if not self.heightmap_config_flag:
-            return
-
-        try:
-            self.listener.waitForTransform(self.fixed_frame, msg.header.frame_id, msg.header.stamp, rospy.Duration(1.0))
-            p, q = self.listener.lookupTransform(self.fixed_frame, msg.header.frame_id, msg.header.stamp)
-            R = quaternion.as_rotation_matrix(np.quaternion(q[3], q[0], q[1], q[2]))
-            self.center_H[:3, 3] = np.array(p)*100
-            self.center_H[:3, :3] = R
-            if np.linalg.norm(self.prev_H[:3, 3]) <= 1e-10:
-                self.prev_H = self.center_H.copy()
-                return
-        except:
-            print("tf error")
             return
 
         #input_image = np.frombuffer(msg.data, dtype=np.float32).reshape(msg.height, msg.width, -1)
@@ -158,26 +149,40 @@ class SteppableRegionPublisher:
         c_time = rospy.Time.now()
         if self.debug_output:
             print("b_c", (c_time - b_time).secs, "s", (int)((c_time - b_time).nsecs / 1000000), "ms")
+
         #蓄積
+        with self.lock:
+            try:
+                self.listener.waitForTransform(self.fixed_frame, msg.header.frame_id, msg.header.stamp, rospy.Duration(1.0))
+                p, q = self.listener.lookupTransform(self.fixed_frame, msg.header.frame_id, msg.header.stamp)
+                R = quaternion.as_rotation_matrix(np.quaternion(q[3], q[0], q[1], q[2]))
+                self.center_H[:3, 3] = np.array(p)*100
+                self.center_H[:3, :3] = R
+                if np.linalg.norm(self.prev_H[:3, 3]) <= 1e-10:
+                    self.prev_H = self.center_H.copy()
+                    return
+            except:
+                print("tf error")
+                return
 
-        img_H = np.identity(4)
-        img_H[:3, 3] = np.array([-self.accumulate_center_x, -self.accumulate_center_y, 0])
-        tmp_H = np.linalg.inv(self.center_H @ img_H) @ (self.prev_H @ img_H)
-        trans_cv = np.delete(tmp_H[:2, :], 2, 1)
-        self.prev_H = self.center_H.copy()
+            img_H = np.identity(4)
+            img_H[:3, 3] = np.array([-self.accumulate_center_x, -self.accumulate_center_y, 0])
+            tmp_H = np.linalg.inv(self.center_H @ img_H) @ (self.prev_H @ img_H)
+            trans_cv = np.delete(tmp_H[:2, :], 2, 1)
+            self.prev_H = self.center_H.copy()
 
-        self.accumulated_steppable_image = cv2.warpAffine(self.accumulated_steppable_image, trans_cv, (self.accumulated_steppable_image.shape[1], self.accumulated_steppable_image.shape[0]), flags=cv2.INTER_NEAREST)
-        self.accumulated_height_image = cv2.warpAffine(self.accumulated_height_image, trans_cv, (self.accumulated_height_image.shape[1], self.accumulated_height_image.shape[0]))
-        self.accumulated_pose_image = cv2.warpAffine(self.accumulated_pose_image, trans_cv, (self.accumulated_pose_image.shape[1], self.accumulated_pose_image.shape[0]))
-        self.accumulated_yaw_image = cv2.warpAffine(self.accumulated_yaw_image, trans_cv, (self.accumulated_yaw_image.shape[1], self.accumulated_yaw_image.shape[0]))
+            self.accumulated_steppable_image = cv2.warpAffine(self.accumulated_steppable_image, trans_cv, (self.accumulated_steppable_image.shape[1], self.accumulated_steppable_image.shape[0]), flags=cv2.INTER_NEAREST)
+            self.accumulated_height_image = cv2.warpAffine(self.accumulated_height_image, trans_cv, (self.accumulated_height_image.shape[1], self.accumulated_height_image.shape[0]))
+            self.accumulated_pose_image = cv2.warpAffine(self.accumulated_pose_image, trans_cv, (self.accumulated_pose_image.shape[1], self.accumulated_pose_image.shape[0]))
+            self.accumulated_yaw_image = cv2.warpAffine(self.accumulated_yaw_image, trans_cv, (self.accumulated_yaw_image.shape[1], self.accumulated_yaw_image.shape[0]))
 
-        tmp_x = self.accumulate_center_x + self.heightmap_minx
-        tmp_y = self.accumulate_center_y + self.heightmap_miny
-        self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_steppable_img * update_pixel + self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
-        self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel + self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
-        self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_pose_img * np.dstack((update_pixel, update_pixel)) + self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - np.dstack((update_pixel, update_pixel)))
-        current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
-        self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = current_yaw_img * update_pixel + self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
+            tmp_x = self.accumulate_center_x + self.heightmap_minx
+            tmp_y = self.accumulate_center_y + self.heightmap_miny
+            self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_steppable_img * update_pixel + self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
+            self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel + self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
+            self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_pose_img * np.dstack((update_pixel, update_pixel)) + self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - np.dstack((update_pixel, update_pixel)))
+            current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
+            self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = current_yaw_img * update_pixel + self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
 
         d_time = rospy.Time.now()
         if self.debug_output:
@@ -425,96 +430,95 @@ class SteppableRegionPublisher:
             print("tf error")
             return
 
-        img_H = np.identity(4)
-        img_H[:3, 3] = np.array([-self.accumulate_center_x, -self.accumulate_center_y, 0])
-        cur_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.cur_foot_pos, 1)
-        next_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.next_foot_pos, 1)
-        self.cur_foot_pos[2] = self.accumulated_height_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] * 100
-        self.next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
+        with self.lock:
+            img_H = np.identity(4)
+            img_H[:3, 3] = np.array([-self.accumulate_center_x, -self.accumulate_center_y, 0])
+            cur_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.cur_foot_pos, 1)
+            next_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.next_foot_pos, 1)
+            self.cur_foot_pos[2] = self.accumulated_height_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] * 100
+            self.next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
 
-        cur_foot_ground_H = np.identity(4)
-        cur_foot_ground_H[:3, :3] = self.cur_foot_rot_ground
-        cur_foot_ground_H[:3, 3] = self.cur_foot_pos
-        sr = SteppableRegion()
-        sr.header = copy.deepcopy(msg.header)
-        sr.header.frame_id = target_frame
-        sr.l_r = msg.l_r
+            cur_foot_ground_H = np.identity(4)
+            cur_foot_ground_H[:3, :3] = self.cur_foot_rot_ground
+            cur_foot_ground_H[:3, 3] = self.cur_foot_pos
+            sr = SteppableRegion()
+            sr.header = copy.deepcopy(msg.header)
+            sr.header.frame_id = target_frame
+            sr.l_r = msg.l_r
 
-        for v in self.convex_list:
-            ps = PolygonStamped()
-            ps.header = sr.header
-            p32 = Point32()
-            for p in v:
-                tmp = np.array([p.x - self.trim_center_x, p.y - self.trim_center_y, self.accumulated_height_image[math.floor(p.y - self.trim_center_y + self.accumulate_center_y), math.floor(p.x - self.trim_center_x + self.accumulate_center_x)] * 100.0, 1])
-                if tmp[2] < -1e+10:
-                    tmp[2] = 0
-                tmp = np.linalg.inv(cur_foot_ground_H) @ self.center_H @ tmp
-                tmp = tmp * 0.01
-                p32.x = tmp[0]
-                p32.y = tmp[1]
-                p32.z = tmp[2]
-                ps.polygon.points.append(copy.deepcopy(p32))
-            sr.polygons.append(copy.deepcopy(ps))
+            for v in self.convex_list:
+                ps = PolygonStamped()
+                ps.header = sr.header
+                p32 = Point32()
+                for p in v:
+                    tmp = np.array([p.x - self.trim_center_x, p.y - self.trim_center_y, self.accumulated_height_image[math.floor(p.y - self.trim_center_y + self.accumulate_center_y), math.floor(p.x - self.trim_center_x + self.accumulate_center_x)] * 100.0, 1])
+                    if tmp[2] < -1e+10:
+                        tmp[2] = 0
+                    tmp = np.linalg.inv(cur_foot_ground_H) @ self.center_H @ tmp
+                    tmp = tmp * 0.01
+                    p32.x = tmp[0]
+                    p32.y = tmp[1]
+                    p32.z = tmp[2]
+                    ps.polygon.points.append(copy.deepcopy(p32))
+                sr.polygons.append(copy.deepcopy(ps))
+
+            ps = OnlineFootStep()
+            ps.header = copy.deepcopy(msg.header)
+            ps.header.frame_id = target_frame
+            ps.l_r = msg.l_r
+
+            tmp_vecx = [1.0, 0.0, self.accumulated_pose_image[math.floor(next_tmp[1]), math.floor(next_tmp[0]), 0]]
+            tmp_vecy = [0.0, 1.0, self.accumulated_pose_image[math.floor(next_tmp[1]), math.floor(next_tmp[0]), 1]]
+            tmp_vecz = np.cross(tmp_vecx, tmp_vecy)
+            tmp_vecz = tmp_vecz / np.linalg.norm(tmp_vecz)
+            if tmp_vecz[2] < 0.8:
+                print("pose error")
+                tmp_vecz[0] = 0.
+                tmp_vecz[1] = 0.
+                tmp_vecz[2] = 1.
+            tmp_vecz = self.cur_foot_rot_ground.transpose() @ quaternion.as_rotation_matrix(quaternion.from_rotation_vector(np.array([0, 0, self.accumulated_yaw_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])]]))) @ tmp_vecz
+
+            ps.nx = tmp_vecz[0]
+            ps.ny = tmp_vecz[1]
+            ps.nz = tmp_vecz[2]
+
+            tmp_pos = (self.cur_foot_rot_ground.transpose() @ (self.next_foot_pos - self.cur_foot_pos)) * 0.01
+            tmp_pos[2] = tmp_pos[2] if math.fabs(tmp_pos[2]) < 0.4 else 0
+            ps.x = tmp_pos[0]
+            ps.y = tmp_pos[1]
+            ps.z = tmp_pos[2]
+
+
+            # publish pose msg for visualize
+            start_pos = self.cur_foot_rot.transpose() @ self.cur_foot_rot_ground @ tmp_pos
+            end_pos = self.cur_foot_rot.transpose() @ self.cur_foot_rot_ground @ (tmp_pos + 0.3 * tmp_vecz)
+            pose_msg = Marker()
+            pose_msg.header = copy.deepcopy(ps.header)
+            pose_msg.ns = "landing_pose"
+            pose_msg.id = 0
+            pose_msg.type = Marker.ARROW
+            pose_msg.action = Marker.ADD
+            start = Point()
+            start.x = start_pos[0]
+            start.y = start_pos[1]
+            start.z = start_pos[2]
+            end = Point()
+            end.x = end_pos[0]
+            end.y = end_pos[1]
+            end.z = end_pos[2]
+            pose_msg.points.append(start)
+            pose_msg.points.append(end)
+            pose_msg.color.r = 0.8
+            pose_msg.color.g = 0.0
+            pose_msg.color.b = 1.0
+            pose_msg.color.a = 1.0
+            pose_msg.scale.x = 0.03
+            pose_msg.scale.y = 0.05
+            pose_msg.scale.z = 0.07
+            pose_msg.pose.orientation.w = 1.0
         self.region_publisher.publish(sr)
-
-        ps = OnlineFootStep()
-        ps.header = copy.deepcopy(msg.header)
-        ps.header.frame_id = target_frame
-        ps.l_r = msg.l_r
-
-        tmp_vecx = [1.0, 0.0, self.accumulated_pose_image[math.floor(next_tmp[1]), math.floor(next_tmp[0]), 0]]
-        tmp_vecy = [0.0, 1.0, self.accumulated_pose_image[math.floor(next_tmp[1]), math.floor(next_tmp[0]), 1]]
-        tmp_vecz = np.cross(tmp_vecx, tmp_vecy)
-        tmp_vecz = tmp_vecz / np.linalg.norm(tmp_vecz)
-        if tmp_vecz[2] < 0.8:
-            print("pose error")
-            tmp_vecz[0] = 0.
-            tmp_vecz[1] = 0.
-            tmp_vecz[2] = 1.
-        tmp_vecz = self.cur_foot_rot_ground.transpose() @ quaternion.as_rotation_matrix(quaternion.from_rotation_vector(np.array([0, 0, self.accumulated_yaw_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])]]))) @ tmp_vecz
-
-        ps.nx = tmp_vecz[0]
-        ps.ny = tmp_vecz[1]
-        ps.nz = tmp_vecz[2]
-
-        tmp_pos = (self.cur_foot_rot_ground.transpose() @ (self.next_foot_pos - self.cur_foot_pos)) * 0.01
-        tmp_pos[2] = tmp_pos[2] if math.fabs(tmp_pos[2]) < 0.4 else 0
-        ps.x = tmp_pos[0]
-        ps.y = tmp_pos[1]
-        ps.z = tmp_pos[2]
-
         self.height_publisher.publish(ps)
-
-        # publish pose msg for visualize
-        start_pos = self.cur_foot_rot.transpose() @ self.cur_foot_rot_ground @ tmp_pos
-        end_pos = self.cur_foot_rot.transpose() @ self.cur_foot_rot_ground @ (tmp_pos + 0.3 * tmp_vecz)
-        pose_msg = Marker()
-        pose_msg.header = copy.deepcopy(ps.header)
-        pose_msg.ns = "landing_pose"
-        pose_msg.id = 0
-        pose_msg.type = Marker.ARROW
-        pose_msg.action = Marker.ADD
-        start = Point()
-        start.x = start_pos[0]
-        start.y = start_pos[1]
-        start.z = start_pos[2]
-        end = Point()
-        end.x = end_pos[0]
-        end.y = end_pos[1]
-        end.z = end_pos[2]
-        pose_msg.points.append(start)
-        pose_msg.points.append(end)
-        pose_msg.color.r = 0.8
-        pose_msg.color.g = 0.0
-        pose_msg.color.b = 1.0
-        pose_msg.color.a = 1.0
-        pose_msg.scale.x = 0.03
-        pose_msg.scale.y = 0.05
-        pose_msg.scale.z = 0.07
-        pose_msg.pose.orientation.w = 1.0
         self.landing_pose_publisher.publish(pose_msg)
-
-        
 
     def calcFootRotFromNormal(self, orig_R, n):
         en = n / np.linalg.norm(n)
