@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tef
 
-def cnn_steppable(input_shape, checkpoint_path):
+def cnn_steppable(input_shape, checkpoint_path): #37->17->11->5->1
     model = tef.keras.models.Sequential()
 
     # conv1
@@ -38,7 +38,7 @@ def cnn_steppable(input_shape, checkpoint_path):
 
     return model
 
-def cnn_pose(input_shape, checkpoint_path):
+def cnn_pose(input_shape, checkpoint_path): #21->9->5->1
     model = tef.keras.models.Sequential()
 
     # conv1

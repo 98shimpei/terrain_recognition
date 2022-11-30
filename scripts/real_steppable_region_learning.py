@@ -31,14 +31,14 @@ for filename in os.listdir("../terrains/x"):
 for filename in os.listdir("../surfaces"):
     surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
 
-pitch = np.zeros((47, 47, 1))
-roll  = np.zeros((47, 47, 1))
-scale = np.ones ((47, 47, 1))
+pitch = np.zeros((53, 53, 1))
+roll  = np.zeros((53, 53, 1))
+scale = np.ones ((53, 53, 1))
 
-for i in range(47):
-    for j in range(47):
-        pitch[i, j, 0] = (j-23)*0.01
-        roll[i, j, 0]  = (i-23)*0.01
+for i in range(53):
+    for j in range(53):
+        pitch[i, j, 0] = (j-26)*0.01
+        roll[i, j, 0]  = (i-26)*0.01
 
 def randomize(x, y):
     randomizer = np.arange(x.shape[0])
@@ -47,79 +47,47 @@ def randomize(x, y):
 
 def generate_data(num):
     global pitch, roll, scale, steppable_terrains, unsteppable_terrains, surfaces
-    x_data = np.zeros((num, 47, 47, 1))
+    x_data = np.zeros((num, 53, 53, 1))
     y_data = np.zeros((num, 1, 1, 1))
 
     for i in range(num):
-        #surface
-        surface_index = math.floor(random.random()*len(surfaces))
-        surface_x = math.floor(random.random() * (surfaces[surface_index].shape[1] - 47))
-        surface_y = math.floor(random.random() * (surfaces[surface_index].shape[0] - 47))
-        x_data[i, :, :, 0] += surfaces[surface_index][surface_y:surface_y+47, surface_x:surface_x+47]
-
-        #rotate
-        theta = random.random() * 360
-        M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
-        x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
-
         #terrain
         terrain_index = math.floor(random.random()*len(terrains_x))
         x_data[i, :, :, 0] += terrains_x[terrain_index]
-        y_data[i, 0, 0, 0] += terrains_y[terrain_index]
-
-    #for i in range(math.floor(num*0.7)):
-    #    begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
-
-    #    l = end - begin
-    #    if l == 0 :
-    #        continue
-    #    h = random.random() * 0.6 - 0.3
-    #    x_data[i, begin : end, :, 0] += np.ones((l, x_data.shape[2])) * h
-    #    if h > 0.02:
-    #        if begin > 13 or end < 33:
-    #            y_data[i] = np.zeros((3, 3, 1))
-    #    elif h < -0.02:
-    #        if not (end <= 13 or begin >= 34 or (begin >= 17 and end <=30)):
-    #            y_data[i] = np.zeros((3, 3, 1))
-    #for i in range(num):
-    #    theta = random.random() * 60 + 60
-    #    M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
-    #    x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
-    #x_data, y_data = randomize(x_data, y_data)
-
-    #for i in range(math.floor(num*0.7)):
-    #    begin, end = np.sort([math.floor(random.random()*(48)), math.floor(random.random()*(48))])
-
-    #    l = end - begin
-    #    if l == 0 :
-    #        continue
-    #    h = random.random() * 0.6 - 0.3
-    #    x_data[i, begin : end, :, 0] += np.ones((l, x_data.shape[2])) * h
-    #    if h > 0.02:
-    #        if begin > 13 or end < 33:
-    #            y_data[i] = np.zeros((3, 3, 1))
-    #    elif h < -0.02:
-    #        if not (end <= 13 or begin >= 34 or (begin >= 17 and end <=30)):
-    #            y_data[i] = np.zeros((3, 3, 1))
-    #x_data, y_data = randomize(x_data, y_data)
-
-    #for i in range(num):
+        y_tmp = terrains_y[terrain_index]
+        y_n = np.array([y_tmp[1], y_tmp[2], y_tmp[3]])
 
         #rotate
         theta = random.random() * 360
         M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
         x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
-        #M = cv2.getRotationMatrix2D((math.floor(y_data.shape[2] / 2.), math.floor(y_data.shape[1] / 2.)), theta, 1)
-        #y_data[i, :, :, 0] = cv2.warpAffine(y_data[i], M, (y_data.shape[2], y_data.shape[1]))
+        R = np.array([[np.cos(np.deg2rad(-theta)), -np.sin(np.deg2rad(-theta))], [np.sin(np.deg2rad(-theta)), np.cos(np.deg2rad(-theta))]])
+        y_n[:2] = np.dot(R, y_n[:2])
+
+        #surface
+        surface_index = math.floor(random.random()*len(surfaces))
+        surface_x = math.floor(random.random() * (surfaces[surface_index].shape[1] - 53))
+        surface_y = math.floor(random.random() * (surfaces[surface_index].shape[0] - 53))
+        x_data[i, :, :, 0] += surfaces[surface_index][surface_y:surface_y+53, surface_x:surface_x+53]
 
         #tilt
-        p = 2.0*random.random() - 1.0
-        r = 2.0*random.random() - 1.0
+        p = 2.0*random.random() - 1.0 #最大45度
+        r = 2.0*random.random() - 1.0 #最大45度
         s = 1.0*random.random() - 0.5
-        x_data[i] += p * pitch + r * roll + s * scale + 0.05*np.random.rand(47, 47, 1) - 0.025 * np.ones((47, 47, 1))
+        x_data[i] += p * pitch + r * roll + s * scale# + 0.05*np.random.rand(53, 53, 1) - 0.025 * np.ones((53, 53, 1))
+
+        #check steppability
+        tmp_vec_x = np.array([1.0, 0, p + (-y_n[1]/y_n[2])]) #cm換算
+        tmp_vec_y = np.array([0, 1.0, r + (-y_n[0]/y_n[2])])
+        tmp_vec_z = np.cross(tmp_vec_x, tmp_vec_y)
+        tmp_vec_z = tmp_vec_z / np.linalg.norm(tmp_vec_z)
+        if np.abs(tmp_vec_z[2]) < np.cos(np.deg2rad(30)):
+            y_data[i, 0, 0, 0] = 0
+        else:
+            y_data[i, 0, 0, 0] = 1 if y_tmp[0] == 1 else 0
     x_data, y_data = randomize(x_data, y_data)
 
-    x_data = x_data[:, 5:42, 5:42]
+    x_data = x_data[:, 8:45, 8:45]
     y_data = y_data > 0.5
     y_data = y_data.astype(np.int)
     return x_data, y_data
@@ -166,21 +134,28 @@ print('Test data accuracy:', test_accuracy)
 if "v" in args[3]:
     cv2.imshow('test',x_test[0] * 1.0 + 0.5)
 
-    for i in range(5):
-        print("answer")
-        print(y_train[i])
-        print("predict")
-        print(np.argmax(model_steppable_region.predict(x_train[i:i+1]), axis=3))
-        cv2.imshow('test',x_train[i]*2.0 + 0.5)
-        cv2.waitKey(1)
-        time.sleep(2)
-        print("---")
+    hoge_train = np.zeros((1, 37, 37, 1))
+    print("hoge")
+    print(np.argmax(model_steppable_region.predict(hoge_train), axis=3))
+    print("hoge2")
+    hoge_train[0,:,:] += 1.0 * pitch[8:45, 8:45]
+    print(np.argmax(model_steppable_region.predict(hoge_train), axis=3))
 
-    print("answer")
-    print(y_test[70])
-    print("predict")
-    print(np.argmax(model_steppable_region.predict(x_test[70:71]), axis=3))
-    cv2.imshow('test',x_test[70] * 2.0 + 0.5)
-    cv2.waitKey(1)
-    time.sleep(5)
-    print("---")
+    #for i in range(5):
+    #    print("answer")
+    #    print(y_train[i])
+    #    print("predict")
+    #    print(np.argmax(model_steppable_region.predict(x_train[i:i+1]), axis=3))
+    #    cv2.imshow('test',x_train[i]*2.0 + 0.5)
+    #    cv2.waitKey(1)
+    #    time.sleep(2)
+    #    print("---")
+
+    #print("answer")
+    #print(y_test[70])
+    #print("predict")
+    #print(np.argmax(model_steppable_region.predict(x_test[70:71]), axis=3))
+    #cv2.imshow('test',x_test[70] * 2.0 + 0.5)
+    #cv2.waitKey(1)
+    #time.sleep(5)
+    #print("---")
