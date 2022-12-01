@@ -184,143 +184,143 @@ class SteppableRegionPublisher:
             current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
             self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = current_yaw_img * update_pixel + self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
 
-        d_time = rospy.Time.now()
-        if self.debug_output:
-            print("c_d", (d_time - c_time).secs, "s", (int)((d_time - c_time).nsecs / 1000000), "ms")
+            d_time = rospy.Time.now()
+            if self.debug_output:
+                print("c_d", (d_time - c_time).secs, "s", (int)((d_time - c_time).nsecs / 1000000), "ms")
 
-        #ここで拡大縮小、輪郭抽出等
-        trimmed_image = np.uint8(self.accumulated_steppable_image[self.accumulate_center_y - self.trim_center_y : self.accumulate_center_y - self.trim_center_y + self.trim_length, self.accumulate_center_x - self.trim_center_x : self.accumulate_center_x - self.trim_center_x + self.trim_length].copy())
-        trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((3, 3)))
-        trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_CLOSE, np.ones((5, 5)))
-        trimmed_image = cv2.erode(trimmed_image, np.ones((5, 5), np.uint8))
-        trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((5, 5)))
-        trimmed_image = cv2.dilate(trimmed_image, np.ones((3, 3), np.uint8))
+            #ここで拡大縮小、輪郭抽出等
+            trimmed_image = np.uint8(self.accumulated_steppable_image[self.accumulate_center_y - self.trim_center_y : self.accumulate_center_y - self.trim_center_y + self.trim_length, self.accumulate_center_x - self.trim_center_x : self.accumulate_center_x - self.trim_center_x + self.trim_length].copy())
+            trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((3, 3)))
+            trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_CLOSE, np.ones((5, 5)))
+            trimmed_image = cv2.erode(trimmed_image, np.ones((5, 5), np.uint8))
+            trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((5, 5)))
+            trimmed_image = cv2.dilate(trimmed_image, np.ones((3, 3), np.uint8))
 
-        visualized_trimmed_image = np.zeros((trimmed_image.shape[0], trimmed_image.shape[1], 3), dtype=np.uint8)
-        visualized_trimmed_image[:, :, 0] = trimmed_image.copy()
+            visualized_trimmed_image = np.zeros((trimmed_image.shape[0], trimmed_image.shape[1], 3), dtype=np.uint8)
+            visualized_trimmed_image[:, :, 0] = trimmed_image.copy()
 
-        contours, hierarchy = cv2.findContours(trimmed_image, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+            contours, hierarchy = cv2.findContours(trimmed_image, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
 
-        #size_threshold = 5
-        #approx_vector = []
-        #for i in range(len(contours)):
-        #    if cv2.contourArea(contours[i]) > size_threshold:
-        #        approx = cv2.approxPolyDP(contours[i], 1.5, True)
-        #        if len(approx) >= 3:
-        #            tmp = []
-        #            for p in approx:
-        #                tmp.append(p2t.Point(p[0, 0], p[0, 1]))
-        #            approx_vector.append(tmp)
+            #size_threshold = 5
+            #approx_vector = []
+            #for i in range(len(contours)):
+            #    if cv2.contourArea(contours[i]) > size_threshold:
+            #        approx = cv2.approxPolyDP(contours[i], 1.5, True)
+            #        if len(approx) >= 3:
+            #            tmp = []
+            #            for p in approx:
+            #                tmp.append(p2t.Point(p[0, 0], p[0, 1]))
+            #            approx_vector.append(tmp)
 
-        #tri_list = []
-        #for i in range(len(approx_vector)):
-        #    if hierarchy[0, i, 3] != -1:
-        #        continue
-        #    cdt = p2t.CDT(approx_vector[i])
-        #    j = hierarchy[0, i, 2] #first hole
-        #    while j != -1:
-        #        cdt.add_hole(approx_vector[j])
-        #        j = hierarchy[0, j, 0] #next hole
-        #    tri_list.extend(cdt.triangulate())
+            #tri_list = []
+            #for i in range(len(approx_vector)):
+            #    if hierarchy[0, i, 3] != -1:
+            #        continue
+            #    cdt = p2t.CDT(approx_vector[i])
+            #    j = hierarchy[0, i, 2] #first hole
+            #    while j != -1:
+            #        cdt.add_hole(approx_vector[j])
+            #        j = hierarchy[0, j, 0] #next hole
+            #    tri_list.extend(cdt.triangulate())
 
-        size_threshold = 5
-        tri_list = []
-        for i in range(len(contours)):
-            if hierarchy[0, i, 3] != -1: #穴は後で
-                continue
-            if cv2.contourArea(contours[i]) > size_threshold:
-                approx = cv2.approxPolyDP(contours[i], 1.0, True)
-                if len(approx) >= 3:
-                    tmp = []
-                    #print("shape")
-                    for p in approx:
-                        tmp.append(p2t.Point(p[0, 0], p[0, 1]))
-                        #print (p[0, 0], p[0, 1])
-                        cv2.circle(visualized_trimmed_image, (p[0, 0], p[0, 1]), 2, (0, 255, 0), -1)
-                    cdt = p2t.CDT(tmp)
-                    j = hierarchy[0, i, 2] #first hole
-                    while j != -1:
-                        if cv2.contourArea(contours[j]) > size_threshold:
-                            approx_hole = cv2.approxPolyDP(contours[j], 1.0, True)
-                            if len(approx_hole) >= 3:
-                                tmp_hole = []
-                                #print("hole")
-                                for ph in approx_hole:
-                                    tmp_hole.append(p2t.Point(ph[0, 0], ph[0, 1]))
-                                    #print (ph[0, 0], ph[0, 1])
-                                    cv2.circle(visualized_trimmed_image, (ph[0, 0], ph[0, 1]), 2, (0, 0, 255), -1)
-                                cdt.add_hole(tmp_hole)
-                        j = hierarchy[0, j, 0] #next hole
-                    tri_list.extend(cdt.triangulate())
+            size_threshold = 5
+            tri_list = []
+            for i in range(len(contours)):
+                if hierarchy[0, i, 3] != -1: #穴は後で
+                    continue
+                if cv2.contourArea(contours[i]) > size_threshold:
+                    approx = cv2.approxPolyDP(contours[i], 1.0, True)
+                    if len(approx) >= 3:
+                        tmp = []
+                        #print("shape")
+                        for p in approx:
+                            tmp.append(p2t.Point(p[0, 0], p[0, 1]))
+                            #print (p[0, 0], p[0, 1])
+                            cv2.circle(visualized_trimmed_image, (p[0, 0], p[0, 1]), 2, (0, 255, 0), -1)
+                        cdt = p2t.CDT(tmp)
+                        j = hierarchy[0, i, 2] #first hole
+                        while j != -1:
+                            if cv2.contourArea(contours[j]) > size_threshold:
+                                approx_hole = cv2.approxPolyDP(contours[j], 1.0, True)
+                                if len(approx_hole) >= 3:
+                                    tmp_hole = []
+                                    #print("hole")
+                                    for ph in approx_hole:
+                                        tmp_hole.append(p2t.Point(ph[0, 0], ph[0, 1]))
+                                        #print (ph[0, 0], ph[0, 1])
+                                        cv2.circle(visualized_trimmed_image, (ph[0, 0], ph[0, 1]), 2, (0, 0, 255), -1)
+                                    cdt.add_hole(tmp_hole)
+                            j = hierarchy[0, j, 0] #next hole
+                        tri_list.extend(cdt.triangulate())
 
-        #tri_list = []
-        #for i in range(len(approx_vector)):
-        #    if approx_hierarchy[i][3] != -1:
-        #        continue
-        #    cdt = p2t.CDT(approx_vector[i])
-        #    j = approx_hierarchy[i][2] #first hole
-        #    while j != -1:
-        #        cdt.add_hole(approx_vector[j])
-        #        j = approx_hierarchy[j][0] #next hole
-        #    tri_list.extend(cdt.triangulate())
+            #tri_list = []
+            #for i in range(len(approx_vector)):
+            #    if approx_hierarchy[i][3] != -1:
+            #        continue
+            #    cdt = p2t.CDT(approx_vector[i])
+            #    j = approx_hierarchy[i][2] #first hole
+            #    while j != -1:
+            #        cdt.add_hole(approx_vector[j])
+            #        j = approx_hierarchy[j][0] #next hole
+            #    tri_list.extend(cdt.triangulate())
 
-        if len(tri_list) == 0:
-            print("error")
-            return
+            if len(tri_list) == 0:
+                print("error")
+                return
 
-        self.convex_list = []
-        now_convex = []
+            self.convex_list = []
+            now_convex = []
 #i=0
-        if self.t2pPointEqual(tri_list[0].b, tri_list[1].a) or self.t2pPointEqual(tri_list[0].b, tri_list[1].b) or self.t2pPointEqual(tri_list[0].b, tri_list[1].c):
-            now_convex = [tri_list[0].a, tri_list[0].b, tri_list[0].c]
-        else:
-            now_convex = [tri_list[0].b, tri_list[0].c, tri_list[0].a]
-        index = 1
-
-
-        for i in range(1, len(tri_list)):
-            #for i in range(len(now_convex)):
-            #    cv2.line(img, (int(now_convex[i-1].x), int(now_convex[i-1].y)), (int(now_convex[i].x), int(now_convex[i].y)), color=(0, 200, 100), thickness=3)
-            #cv2.imshow("test", img)
-            #cv2.waitKey(1000)
-
-            tmp_tri = []
-            if self.t2pPointEqual(now_convex[index], tri_list[i].a):
-                tmp_tri = [tri_list[i].a, tri_list[i].b, tri_list[i].c]
-            elif self.t2pPointEqual(now_convex[index], tri_list[i].b):
-                tmp_tri = [tri_list[i].b, tri_list[i].c, tri_list[i].a]
-            elif self.t2pPointEqual(now_convex[index], tri_list[i].c):
-                tmp_tri = [tri_list[i].c, tri_list[i].a, tri_list[i].b]
+            if self.t2pPointEqual(tri_list[0].b, tri_list[1].a) or self.t2pPointEqual(tri_list[0].b, tri_list[1].b) or self.t2pPointEqual(tri_list[0].b, tri_list[1].c):
+                now_convex = [tri_list[0].a, tri_list[0].b, tri_list[0].c]
             else:
-                self.convex_list.append(copy.deepcopy(now_convex))
-                if i == len(tri_list)-1:
-                    self.convex_list.append([tri_list[i].a, tri_list[i].b, tri_list[i].c])
-                elif self.t2pPointEqual(tri_list[i].b, tri_list[i+1].a) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].b) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].c):
-                    now_convex = [tri_list[i].a, tri_list[i].b, tri_list[i].c]
-                else:
-                    now_convex = [tri_list[i].b, tri_list[i].c, tri_list[i].a]
-                index = 1
-                continue
+                now_convex = [tri_list[0].b, tri_list[0].c, tri_list[0].a]
+            index = 1
 
-            tmp_index = index+2 if index+2 != len(now_convex) else 0
-            if self.t2pPointEqual(now_convex[index-1], tmp_tri[1]) and np.cross([now_convex[index-1].x - now_convex[index-2].x, now_convex[index-1].y - now_convex[index-2].y], [tmp_tri[2].x - now_convex[index-2].x, tmp_tri[2].y - now_convex[index-2].y]) > 0 and np.cross([now_convex[index].x - now_convex[index+1].x, now_convex[index].y - now_convex[index+1].y], [tmp_tri[2].x - now_convex[index+1].x, tmp_tri[2].y - now_convex[index+1].y]) < 0:
-                now_convex.insert(index, tmp_tri[2])
-            elif self.t2pPointEqual(now_convex[index+1], tmp_tri[2]) and np.cross([now_convex[index].x - now_convex[index-1].x, now_convex[index].y - now_convex[index-1].y], [tmp_tri[1].x - now_convex[index-1].x, tmp_tri[1].y - now_convex[index-1].y]) > 0 and np.cross([now_convex[index+1].x - now_convex[tmp_index].x, now_convex[index+1].y - now_convex[tmp_index].y], [tmp_tri[1].x - now_convex[tmp_index].x, tmp_tri[1].y - now_convex[tmp_index].y]) < 0:
-                now_convex.insert(index+1, tmp_tri[1])
-                index += 1
-            else:
-                self.convex_list.append(copy.deepcopy(now_convex))
-                if i == len(tri_list)-1:
-                    self.convex_list.append([tri_list[i].a, tri_list[i].b, tri_list[i].c])
-                elif self.t2pPointEqual(tri_list[i].b, tri_list[i+1].a) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].b) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].c):
-                    now_convex = [tri_list[i].a, tri_list[i].b, tri_list[i].c]
+
+            for i in range(1, len(tri_list)):
+                #for i in range(len(now_convex)):
+                #    cv2.line(img, (int(now_convex[i-1].x), int(now_convex[i-1].y)), (int(now_convex[i].x), int(now_convex[i].y)), color=(0, 200, 100), thickness=3)
+                #cv2.imshow("test", img)
+                #cv2.waitKey(1000)
+
+                tmp_tri = []
+                if self.t2pPointEqual(now_convex[index], tri_list[i].a):
+                    tmp_tri = [tri_list[i].a, tri_list[i].b, tri_list[i].c]
+                elif self.t2pPointEqual(now_convex[index], tri_list[i].b):
+                    tmp_tri = [tri_list[i].b, tri_list[i].c, tri_list[i].a]
+                elif self.t2pPointEqual(now_convex[index], tri_list[i].c):
+                    tmp_tri = [tri_list[i].c, tri_list[i].a, tri_list[i].b]
                 else:
-                    now_convex = [tri_list[i].b, tri_list[i].c, tri_list[i].a]
-                index = 1
-                continue
-            if i == len(tri_list)-1:
-                self.convex_list.append(copy.deepcopy(now_convex))
+                    self.convex_list.append(copy.deepcopy(now_convex))
+                    if i == len(tri_list)-1:
+                        self.convex_list.append([tri_list[i].a, tri_list[i].b, tri_list[i].c])
+                    elif self.t2pPointEqual(tri_list[i].b, tri_list[i+1].a) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].b) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].c):
+                        now_convex = [tri_list[i].a, tri_list[i].b, tri_list[i].c]
+                    else:
+                        now_convex = [tri_list[i].b, tri_list[i].c, tri_list[i].a]
+                    index = 1
+                    continue
+
+                tmp_index = index+2 if index+2 != len(now_convex) else 0
+                if self.t2pPointEqual(now_convex[index-1], tmp_tri[1]) and np.cross([now_convex[index-1].x - now_convex[index-2].x, now_convex[index-1].y - now_convex[index-2].y], [tmp_tri[2].x - now_convex[index-2].x, tmp_tri[2].y - now_convex[index-2].y]) > 0 and np.cross([now_convex[index].x - now_convex[index+1].x, now_convex[index].y - now_convex[index+1].y], [tmp_tri[2].x - now_convex[index+1].x, tmp_tri[2].y - now_convex[index+1].y]) < 0:
+                    now_convex.insert(index, tmp_tri[2])
+                elif self.t2pPointEqual(now_convex[index+1], tmp_tri[2]) and np.cross([now_convex[index].x - now_convex[index-1].x, now_convex[index].y - now_convex[index-1].y], [tmp_tri[1].x - now_convex[index-1].x, tmp_tri[1].y - now_convex[index-1].y]) > 0 and np.cross([now_convex[index+1].x - now_convex[tmp_index].x, now_convex[index+1].y - now_convex[tmp_index].y], [tmp_tri[1].x - now_convex[tmp_index].x, tmp_tri[1].y - now_convex[tmp_index].y]) < 0:
+                    now_convex.insert(index+1, tmp_tri[1])
+                    index += 1
+                else:
+                    self.convex_list.append(copy.deepcopy(now_convex))
+                    if i == len(tri_list)-1:
+                        self.convex_list.append([tri_list[i].a, tri_list[i].b, tri_list[i].c])
+                    elif self.t2pPointEqual(tri_list[i].b, tri_list[i+1].a) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].b) or self.t2pPointEqual(tri_list[i].b, tri_list[i+1].c):
+                        now_convex = [tri_list[i].a, tri_list[i].b, tri_list[i].c]
+                    else:
+                        now_convex = [tri_list[i].b, tri_list[i].c, tri_list[i].a]
+                    index = 1
+                    continue
+                if i == len(tri_list)-1:
+                    self.convex_list.append(copy.deepcopy(now_convex))
 
         e_time = rospy.Time.now()
         if self.debug_output:
