@@ -31,7 +31,7 @@ class SurfaceSaver:
         self.mouse_x2 = -1
         self.mouse_y2 = -1
         self.color = 0
-        self.sum_image = np.zeros((47, 47))
+        self.sum_image = np.zeros((53, 53))
         self.sum_counter = 0
         self.model_steppable = cnn_models.cnn_steppable((37, 37, 1), "../checkpoints/checkpoint")
         self.model_height = cnn_models.cnn_height((21, 21, 1), "../checkpoints/checkpoint")
@@ -119,9 +119,9 @@ class SurfaceSaver:
             elif self.mouse_x1 == self.mouse_x2 and self.mouse_y1 == self.mouse_y2: #terrain
                 #cv2.circle(tmp_image, (self.mouse_x1, self.mouse_y1), 2, math.fabs(self.color-1), thickness=-1)
                 cv2.rectangle(tmp_image, (self.mouse_x1-1, self.mouse_y1-1), (self.mouse_x2+1, self.mouse_y2+1), math.fabs(self.color - 1), 1)
-                cv2.rectangle(tmp_image, (self.mouse_x1-11, self.mouse_y1-11), (self.mouse_x2+11, self.mouse_y2+11), math.fabs(self.color - 1), 1)
-                cv2.rectangle(tmp_image, (self.mouse_x1-19, self.mouse_y1-19), (self.mouse_x2+19, self.mouse_y2+19), math.fabs(self.color - 1), 1)
-                cv2.rectangle(tmp_image, (self.mouse_x1-23, self.mouse_y1-23), (self.mouse_x2+23, self.mouse_y2+23), math.fabs(self.color - 1), 1)
+                cv2.rectangle(tmp_image, (self.mouse_x1-10, self.mouse_y1-10), (self.mouse_x2+10, self.mouse_y2+10), math.fabs(self.color - 1), 1)
+                cv2.rectangle(tmp_image, (self.mouse_x1-18, self.mouse_y1-18), (self.mouse_x2+18, self.mouse_y2+18), math.fabs(self.color - 1), 1)
+                cv2.rectangle(tmp_image, (self.mouse_x1-26, self.mouse_y1-26), (self.mouse_x2+26, self.mouse_y2+26), math.fabs(self.color - 1), 1)
             else: #surface
                 cv2.rectangle(tmp_image, (self.mouse_x1, self.mouse_y1), (self.mouse_x2, self.mouse_y2), math.fabs(self.color - 1), 2)
             tmp_image = cv2.resize(tmp_image, (tmp_image.shape[1]*2, tmp_image.shape[0]*2))
@@ -147,14 +147,14 @@ class SurfaceSaver:
                 if key == 111: #O
                     nowdate = datetime.datetime.now()
                     np.savetxt("../terrains/x/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
-                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.ones((5, 5)), delimiter=",")
+                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.array([1.0, 0.0, 0.0, 1.0, 0.0]), delimiter=",")
                     self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                     print("save steppable image")
                     break
                 elif key == 120: #X
                     nowdate = datetime.datetime.now()
                     np.savetxt("../terrains/x/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
-                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.zeros((5, 5)), delimiter=",")
+                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.array([-1.0, 0.0, 0.0, 1.0, 0.0]), delimiter=",")
                     self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                     print("save steppable image")
                     break
@@ -176,7 +176,7 @@ class SurfaceSaver:
                         tmp = self.mouse_y1
                         self.mouse_y1 = self.mouse_y2
                         self.mouse_y2 = tmp
-                    if self.mouse_x2 - self.mouse_x1 < 47 or self.mouse_y2 - self.mouse_y1 < 47:
+                    if self.mouse_x2 - self.mouse_x1 < 53 or self.mouse_y2 - self.mouse_y1 < 53:
                         print("size error")
                         self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                         break

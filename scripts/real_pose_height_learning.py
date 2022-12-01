@@ -28,7 +28,6 @@ for filename in os.listdir("../terrains/x"):
     terrains_y.append(np.loadtxt("../terrains/y/"+filename, delimiter=","))
 for filename in os.listdir("../surfaces"):
     surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
-steppable_terrains = [terrains_x[i] for i in range(len(terrains_y)) if np.sum(terrains_y[i])==1]
 for filename in os.listdir("../terrains/pose"):
     pose_terrains.append(np.loadtxt("../terrains/pose/"+filename, delimiter=","))
 
@@ -55,40 +54,48 @@ def generate_data(num):
     x_data = np.zeros((num, H, W, C))
     y_data = np.zeros((num, 1, 1, 3))
     for i in range(num):
-        surface_index = math.floor(random.random()*len(surfaces))
-        surface_x = math.floor(random.random() * (surfaces[surface_index].shape[1] - 21))
-        surface_y = math.floor(random.random() * (surfaces[surface_index].shape[0] - 21))
-        x_data[i, :, :, 0] += surfaces[surface_index][surface_y:surface_y+21, surface_x:surface_x+21]
-        
         #terrain
         if i < num*1.0:
-            x_data[i, :, :, 0] += steppable_terrains[math.floor(random.random()*len(steppable_terrains))][13:34,13:34]
-            for j in range(2):
-                h = random.random()*0.3
-                l = math.floor(random.random()*8+1)
-                tmp = random.random()
-                if tmp < 0.1: #端を消す
-                    x_data[i, 0:l, :, 0] -= h * np.ones((l, x_data.shape[2]))
-                elif tmp < 0.2:
-                    x_data[i, x_data.shape[1]-l:x_data.shape[1], :, 0] -= h * np.ones((l, x_data.shape[2]))
-                elif tmp < 0.3:
-                    x_data[i, :, 0:l, 0] -= h * np.ones((x_data.shape[1], l))
-                elif tmp < 0.4:
-                    x_data[i, :, x_data.shape[2]-l:x_data.shape[2], 0] -= h * np.ones((x_data.shape[1], l))
+            terrain_index = math.floor(random.random()*len(terrains_x))
+            while (terrains_y[terrain_index][0] == -1):
+                terrain_index = math.floor(random.random()*len(terrains_x))
+            x_data[i, :, :, 0] += terrains_x[terrain_index][16:37,16:37]
+            y_tmp = terrains_y[terrain_index]
+            y_n = np.array([y_tmp[1], y_tmp[2], y_tmp[3]])
+            #for j in range(2):
+            #    h = random.random()*0.3
+            #    l = math.floor(random.random()*8+1)
+            #    tmp = random.random()
+            #    if tmp < 0.1: #端を消す
+            #        x_data[i, 0:l, :, 0] -= h * np.ones((l, x_data.shape[2]))
+            #    elif tmp < 0.2:
+            #        x_data[i, x_data.shape[1]-l:x_data.shape[1], :, 0] -= h * np.ones((l, x_data.shape[2]))
+            #    elif tmp < 0.3:
+            #        x_data[i, :, 0:l, 0] -= h * np.ones((x_data.shape[1], l))
+            #    elif tmp < 0.4:
+            #        x_data[i, :, x_data.shape[2]-l:x_data.shape[2], 0] -= h * np.ones((x_data.shape[1], l))
         else:
-            x_data[i, :, :, 0] += pose_terrains[math.floor(random.random()*len(pose_terrains))][13:34,13:34]
+            x_data[i, :, :, 0] += pose_terrains[math.floor(random.random()*len(pose_terrains))][16:37,16:37]
 
         #rotate
         theta = random.random() * 360
         M = cv2.getRotationMatrix2D((math.floor(x_data.shape[2] / 2.), math.floor(x_data.shape[1] / 2.)), theta, 1)
         x_data[i, :, :, 0] = cv2.warpAffine(x_data[i], M, (x_data.shape[2], x_data.shape[1]))
+        R = np.array([[np.cos(np.deg2rad(-theta)), -np.sin(np.deg2rad(-theta))], [np.sin(np.deg2rad(-theta)), np.cos(np.deg2rad(-theta))]])
+        y_n[:2] = np.dot(R, y_n[:2])
 
+        #surface
+        surface_index = math.floor(random.random()*len(surfaces))
+        surface_x = math.floor(random.random() * (surfaces[surface_index].shape[1] - 21))
+        surface_y = math.floor(random.random() * (surfaces[surface_index].shape[0] - 21))
+        x_data[i, :, :, 0] += surfaces[surface_index][surface_y:surface_y+21, surface_x:surface_x+21]
+        
         #tilt
         p = 2.0*random.random() - 1.0
         r = 2.0*random.random() - 1.0
         s = 1.0*random.random() - 0.5
-        x_data[i] += p * pitch + r * roll + s * scale + 0.05*np.random.rand(H, W, 1) - 0.025 * np.ones((H, W, 1))
-        y_data[i, 0, 0] = np.array([p, r, s])
+        x_data[i] += p * pitch + r * roll + s * scale# + 0.05*np.random.rand(H, W, 1) - 0.025 * np.ones((H, W, 1))
+        y_data[i, 0, 0] = np.array([p + (-y_n[1]/y_n[2]), r + (-y_n[0]/y_n[2]), s + y_tmp[4]])
     #for i in range(math.floor(num*0.8)):
     #    n = math.floor(7 * random.random())
     #    for j in range(n):
@@ -126,6 +133,7 @@ x_test, y_test = generate_data(100)
 
 #----------------------------
 # 学習
+print("pose")
 if "w" in args[3]:
     model_pose = cnn_models.cnn_pose((H,W,C), "../checkpoints/checkpoint")
 else:
@@ -137,6 +145,7 @@ if "f" in args[3]:
     model_pose.save_weights('../checkpoints/checkpoint/checkpoint_pose')
 
 
+print("height")
 if "w" in args[3]:
     model_height = cnn_models.cnn_height((H,W,C), "../checkpoints/checkpoint")
 else:
@@ -150,22 +159,22 @@ if "f" in args[3]:
 
 #----------------------------
 # 学習データに対する評価
-##train_loss, train_accuracy = model.evaluate(x_train, y_train, verbose=0)
-#train_loss, train_mae, train_mse = model_height.evaluate(x_train, y_train[:,:,:,2], verbose=2)
-#print('Train data loss:', train_loss)
-##print('Train data accuracy:', train_accuracy)
-#print("Testing set Mean Abs Error: {:5.2f} MPG".format(train_mae))
+#train_loss, train_accuracy = model.evaluate(x_train, y_train, verbose=0)
+train_loss, train_mae, train_mse = model_height.evaluate(x_train, y_train[:,:,:,2], verbose=0)
+print("height train mae: ", train_mae)
+
+train_loss, train_mae, train_mse = model_pose.evaluate(x_train, y_train[:,:,:,:2], verbose=0)
+print("pose  train mae: ", train_mae)
 
 #----------------------------
 
 #----------------------------
-## 評価データに対する評価
-##test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
-##print('Test data loss:', test_loss)
-##print('Test data accuracy:', test_accuracy)
-#test_loss, test_mae, test_mse = model.evaluate(x_test, y_test, verbose=2)
-#print('Test data loss:', test_loss)
-#print("Testing set Mean Abs Error: {:5.2f} MPG".format(test_mae))
+# 評価データに対する評価
+test_loss, test_mae, test_mse = model_height.evaluate(x_test, y_test[:,:,:,2], verbose=0)
+print("height train mae: ", test_mae)
+
+test_loss, test_mae, test_mse = model_pose.evaluate(x_test, y_test[:,:,:,:2], verbose=0)
+print("pose  train mae: ", test_mae)
 #
 #print("answer")
 #print(y_test[0])
@@ -177,9 +186,7 @@ if "v" in args[3]:
     cv2.imshow('test',x_test[0] * 1.0 + 0.5)
     cv2.waitKey(1)
 
-    print(len(steppable_terrains))
-
-    for i in range(5):
+    for i in range(1):
         print("answer")
         print(y_train[i])
         print("predict")
@@ -187,15 +194,16 @@ if "v" in args[3]:
         print(model_height.predict(x_train[i:i+1]))
         cv2.imshow('test',x_train[i] * 1.0 + 0.5)
         cv2.waitKey(1)
-        time.sleep(5)
+        #time.sleep(5)
         print("---")
 
-    print("answer")
-    print(y_test[70])
-    print("predict")
-    print(model_pose.predict(x_test[70:71]))
-    print(model_height.predict(x_test[70:71]))
-    cv2.imshow('test',x_test[70] * 1.0 + 0.5)
-    cv2.waitKey(1)
-    time.sleep(5)
-    print("---")
+    for i in range(5):
+        print("answer")
+        print(y_test[i])
+        print("predict")
+        print(model_pose.predict(x_test[i:i+1]))
+        print(model_height.predict(x_test[i:i+1]))
+        cv2.imshow('test',x_test[i] * 1.0 + 0.5)
+        cv2.waitKey(1)
+        #time.sleep(5)
+        print("---")
