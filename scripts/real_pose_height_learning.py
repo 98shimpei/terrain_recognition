@@ -159,22 +159,22 @@ if "f" in args[3]:
 
 #----------------------------
 # 学習データに対する評価
-##train_loss, train_accuracy = model.evaluate(x_train, y_train, verbose=0)
-#train_loss, train_mae, train_mse = model_height.evaluate(x_train, y_train[:,:,:,2], verbose=2)
-#print('Train data loss:', train_loss)
-##print('Train data accuracy:', train_accuracy)
-#print("Testing set Mean Abs Error: {:5.2f} MPG".format(train_mae))
+#train_loss, train_accuracy = model.evaluate(x_train, y_train, verbose=0)
+train_loss, train_mae, train_mse = model_height.evaluate(x_train, y_train[:,:,:,2], verbose=0)
+print("height train mae: ", train_mae)
+
+train_loss, train_mae, train_mse = model_pose.evaluate(x_train, y_train[:,:,:,:2], verbose=0)
+print("pose  train mae: ", train_mae)
 
 #----------------------------
 
 #----------------------------
-## 評価データに対する評価
-##test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
-##print('Test data loss:', test_loss)
-##print('Test data accuracy:', test_accuracy)
-#test_loss, test_mae, test_mse = model.evaluate(x_test, y_test, verbose=2)
-#print('Test data loss:', test_loss)
-#print("Testing set Mean Abs Error: {:5.2f} MPG".format(test_mae))
+# 評価データに対する評価
+test_loss, test_mae, test_mse = model_height.evaluate(x_test, y_test[:,:,:,2], verbose=0)
+print("height train mae: ", test_mae)
+
+test_loss, test_mae, test_mse = model_pose.evaluate(x_test, y_test[:,:,:,:2], verbose=0)
+print("pose  train mae: ", test_mae)
 #
 #print("answer")
 #print(y_test[0])
@@ -186,7 +186,7 @@ if "v" in args[3]:
     cv2.imshow('test',x_test[0] * 1.0 + 0.5)
     cv2.waitKey(1)
 
-    for i in range(5):
+    for i in range(1):
         print("answer")
         print(y_train[i])
         print("predict")
@@ -194,15 +194,16 @@ if "v" in args[3]:
         print(model_height.predict(x_train[i:i+1]))
         cv2.imshow('test',x_train[i] * 1.0 + 0.5)
         cv2.waitKey(1)
-        time.sleep(5)
+        #time.sleep(5)
         print("---")
 
-    print("answer")
-    print(y_test[70])
-    print("predict")
-    print(model_pose.predict(x_test[70:71]))
-    print(model_height.predict(x_test[70:71]))
-    cv2.imshow('test',x_test[70] * 1.0 + 0.5)
-    cv2.waitKey(1)
-    time.sleep(5)
-    print("---")
+    for i in range(5):
+        print("answer")
+        print(y_test[i])
+        print("predict")
+        print(model_pose.predict(x_test[i:i+1]))
+        print(model_height.predict(x_test[i:i+1]))
+        cv2.imshow('test',x_test[i] * 1.0 + 0.5)
+        cv2.waitKey(1)
+        #time.sleep(5)
+        print("---")
