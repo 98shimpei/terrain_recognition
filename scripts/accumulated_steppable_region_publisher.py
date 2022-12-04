@@ -179,7 +179,7 @@ class SteppableRegionPublisher:
             tmp_x = self.accumulate_center_x + self.heightmap_minx
             tmp_y = self.accumulate_center_y + self.heightmap_miny
             self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_steppable_img * update_pixel + self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
-            self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel + self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
+            self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel * 0.5 + self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel * 0.5)
             self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_pose_img * np.dstack((update_pixel, update_pixel)) + self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - np.dstack((update_pixel, update_pixel)))
             current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
             self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = current_yaw_img * update_pixel + self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
