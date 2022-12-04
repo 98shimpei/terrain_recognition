@@ -95,7 +95,7 @@ def generate_data(num):
         r = 2.0*random.random() - 1.0
         s = 1.0*random.random() - 0.5
         x_data[i] += p * pitch + r * roll + s * scale# + 0.05*np.random.rand(H, W, 1) - 0.025 * np.ones((H, W, 1))
-        y_data[i, 0, 0] = np.array([p + (-y_n[1]/y_n[2]), r + (-y_n[0]/y_n[2]), s + y_tmp[4]])
+        y_data[i, 0, 0] = np.array([p + (-y_n[0]/y_n[2]), r + (-y_n[1]/y_n[2]), s + y_tmp[4]])
     #for i in range(math.floor(num*0.8)):
     #    n = math.floor(7 * random.random())
     #    for j in range(n):

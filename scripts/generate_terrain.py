@@ -93,7 +93,7 @@ for num in range(int(args[1])):
             break
     #y_data = np.array([1, 0.01 * -n[1]/n[2], 0.01 * -n[0]/n[2], 0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
     #y_data    steppability(1/0),  x1cellあたりのz傾き(m),  y1cellあたりのz傾き(m),  中央高さ(m)
-    y_data = np.array([1, n[0], n[1], n[2], 0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
+    y_data = np.array([1, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
     #y_data    steppability(1/0),  x1cellあたりのz傾き(m),  y1cellあたりのz傾き(m),  中央高さ(m)
 
     #接触凸包の計算
@@ -109,19 +109,18 @@ for num in range(int(args[1])):
         if cv2.contourArea(cnt) > 8: #支持点の最小サイズ(cm^2)
             tmp_array = np.concatenate([tmp_array, cnt.reshape([int(cnt.size/2),2])])
     if tmp_array.size == 0:
-        y_data = np.array([-1, n[0], n[1], n[2], 0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
+        y_data = np.array([-1, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
     else:
         cvhull = cv2.convexHull(tmp_array)
         if not(cv2.pointPolygonTest(cvhull, (0, 10), False) >= 0 and cv2.pointPolygonTest(cvhull, (10, 0), False) >= 0 and cv2.pointPolygonTest(cvhull, (20, 10), False) >= 0 and cv2.pointPolygonTest(cvhull, (10, 20), False) >= 0): #十分な広さの接触凸包があるかどうか
-            y_data = np.array([0, n[0], n[1], n[2], 0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
+            y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
         else:
             #周りに遊脚を阻害する障害物があるかどうか
             for y in range(x_data.shape[0]):
                 for x in range(x_data.shape[1]):
                     distance = np.dot(np.array([y, x, x_data[y, x] * 100.0]) - a, n)
                     if distance > 3.0: #cm
-                        y_data = np.array([0, n[0], n[1], n[2], 0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
-
+                        y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
 
     np.savetxt("../terrains/x/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", x_data, delimiter=",")
     np.savetxt("../terrains/y/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", y_data, delimiter=",")

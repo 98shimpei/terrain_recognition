@@ -77,8 +77,8 @@ def generate_data(num):
         x_data[i] += p * pitch + r * roll + s * scale# + 0.05*np.random.rand(53, 53, 1) - 0.025 * np.ones((53, 53, 1))
 
         #check steppability
-        tmp_vec_x = np.array([1.0, 0, p + (-y_n[1]/y_n[2])]) #cm換算
-        tmp_vec_y = np.array([0, 1.0, r + (-y_n[0]/y_n[2])])
+        tmp_vec_x = np.array([1.0, 0, p + (-y_n[0]/y_n[2])]) #cm換算
+        tmp_vec_y = np.array([0, 1.0, r + (-y_n[1]/y_n[2])])
         tmp_vec_z = np.cross(tmp_vec_x, tmp_vec_y)
         tmp_vec_z = tmp_vec_z / np.linalg.norm(tmp_vec_z)
         if np.abs(tmp_vec_z[2]) < np.cos(np.deg2rad(30)):
