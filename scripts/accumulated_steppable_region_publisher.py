@@ -65,6 +65,8 @@ class SteppableRegionPublisher:
         self.region_publisher = rospy.Publisher('AutoStabilizerROSBridge/steppable_region', SteppableRegion, queue_size=1)
         self.visualized_image_publisher = rospy.Publisher('steppable_image_output', Image, queue_size=1)
         self.visualized_trimmed_image_publisher = rospy.Publisher('trimmed_image_output', Image, queue_size=1)
+        self.step_heightmap_publisher = rospy.Publisher('step_heightmap/output', Image, queue_size=1)
+        self.step_heightmap_config_publisher = rospy.Publisher('step_heightmap/output/config', HeightmapConfig, queue_size=1)
 
         rospy.Subscriber('rt_filtered_current_heightmap/output/config', HeightmapConfig, self.heightmapConfigCallback, queue_size=1)
         rospy.Subscriber('rt_filtered_current_heightmap/output', Image, self.heightmapCallback, queue_size=1, buff_size=2**24)
@@ -401,6 +403,24 @@ class SteppableRegionPublisher:
         trimmed_msg = ros_numpy.msgify(Image, visualized_trimmed_image, encoding='bgr8')
         trimmed_msg.header = copy.deepcopy(msg.header)
         self.visualized_trimmed_image_publisher.publish(trimmed_msg)
+
+        step_heightmap_image = np.zeros(self.accumulated_height_image.shape)
+        step_heightmap_image = np.dstack((self.accumulated_height_image, step_heightmap_image))
+        print(step_heightmap_image.shape)
+        step_heightmap_msg = ros_numpy.msgify(Image, step_heightmap_image.astype(np.float32), encoding='32FC2')
+        step_heightmap_msg.header = copy.deepcopy(msg.header)
+        self.step_heightmap_publisher.publish(step_heightmap_msg)
+
+        step_heightmap_config_msg = HeightmapConfig()
+        step_heightmap_config_msg.max_x = 0.01 * (self.accumulate_length - self.accumulate_center_x)
+        step_heightmap_config_msg.min_x = 0.01 * (-self.accumulate_center_x)
+        step_heightmap_config_msg.max_y = 0.01 * (self.accumulate_length - self.accumulate_center_y)
+        step_heightmap_config_msg.min_y = 0.01 * (-self.accumulate_center_y)
+        #step_heightmap_config_msg.max_x = 1.0
+        #step_heightmap_config_msg.min_x = 0.0
+        #step_heightmap_config_msg.max_y = 1.0
+        #step_heightmap_config_msg.min_y = 0.0
+        self.step_heightmap_config_publisher.publish(step_heightmap_config_msg)
 
         end_time = rospy.Time.now()
 
