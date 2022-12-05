@@ -27,8 +27,16 @@ if len(args) == 2:
 print(args)
 
 nowdate = datetime.datetime.now()
+count = 0
 for num in range(int(args[1])):
     x_data = np.zeros((53, 53))
+    if random.random() < 0.1: #足平内の段差
+        begin = 16 + int(np.random.random() * 21)
+        height = np.random.random() * 0.2
+        x_data[begin:, :] += height * np.ones((x_data.shape[0] - begin, x_data.shape[1]))
+        theta = random.random() * 360
+        M = cv2.getRotationMatrix2D((math.floor(x_data.shape[1] / 2.), math.floor(x_data.shape[0] / 2.)), theta, 1)
+        x_data = cv2.warpAffine(x_data, M, (x_data.shape[1], x_data.shape[0]))
     if random.random() < 0.3: #浅い地形変更
         for i in range(math.floor(random.random() * 50)):
             center_x = np.floor(np.random.random() * 61.0 - 4.0)
@@ -40,7 +48,7 @@ for num in range(int(args[1])):
             for y in range(x_data.shape[0]):
                 for x in range(x_data.shape[1]):
                     x_data[y, x] += max(0, (circle_length**2 - (y_range * (y - center_y)**2 + x_range * (x - center_x)**2)) / circle_length**2) * center_height
-    for i in range(math.floor(random.random() * 1.7 + 0.9)):
+    for i in range(math.floor(random.random() * 1.7 + 0.8)):
         if random.random() < 0.7: #長方形溝
             begin, end = np.sort([math.floor(random.random()*(54)), math.floor(random.random()*(54))])
             if begin == end:
@@ -124,6 +132,9 @@ for num in range(int(args[1])):
 
     np.savetxt("../terrains/x/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", x_data, delimiter=",")
     np.savetxt("../terrains/y/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", y_data, delimiter=",")
+    if (y_data[0] == 1):
+        count+=1
 
     if (num%100 == 0):
         print(num)
+print(count)
