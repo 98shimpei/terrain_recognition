@@ -184,7 +184,8 @@ class SteppableRegionPublisher:
             #高さだけ平行移動対応する
             diff_img = cnn_height_img * update_pixel - self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * update_pixel
             diff_value = np.median(diff_img[(update_pixel*(np.abs(diff_img)<0.1))>0.5]) #update_pixelかつ誤差が0.1m以下のものの中央値
-            self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel + (self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] + diff_value) * (1 - update_pixel)
+            self.accumulated_height_image += diff_value
+            self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel + self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
             self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_pose_img * np.dstack((update_pixel, update_pixel)) + self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - np.dstack((update_pixel, update_pixel)))
             current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
             self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = current_yaw_img * update_pixel + self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
