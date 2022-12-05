@@ -184,8 +184,7 @@ class SteppableRegionPublisher:
             #高さだけ平行移動対応する
             diff_img = cnn_height_img * update_pixel - self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * update_pixel
             diff_value = np.median(diff_img[(update_pixel*(np.abs(diff_img)<0.1))>0.5]) #update_pixelかつ誤差が0.1m以下のものの中央値
-            print(diff_value)
-            self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = (cnn_height_img - diff_value) * update_pixel + self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
+            self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel + (self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] + diff_value) * (1 - update_pixel)
             self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_pose_img * np.dstack((update_pixel, update_pixel)) + self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - np.dstack((update_pixel, update_pixel)))
             current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
             self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = current_yaw_img * update_pixel + self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
@@ -236,7 +235,7 @@ class SteppableRegionPublisher:
                 if hierarchy[0, i, 3] != -1: #穴は後で
                     continue
                 if cv2.contourArea(contours[i]) > size_threshold:
-                    approx = cv2.approxPolyDP(contours[i], 1.0, True)
+                    approx = cv2.approxPolyDP(contours[i], 1.5, True)
                     if len(approx) >= 3:
                         tmp = []
                         #print("shape")
@@ -248,7 +247,7 @@ class SteppableRegionPublisher:
                         j = hierarchy[0, i, 2] #first hole
                         while j != -1:
                             if cv2.contourArea(contours[j]) > size_threshold:
-                                approx_hole = cv2.approxPolyDP(contours[j], 1.0, True)
+                                approx_hole = cv2.approxPolyDP(contours[j], 1.5, True)
                                 if len(approx_hole) >= 3:
                                     tmp_hole = []
                                     #print("hole")
