@@ -201,6 +201,7 @@ class SteppableRegionPublisher:
             trimmed_image = cv2.erode(trimmed_image, np.ones((5, 5), np.uint8))
             trimmed_image = cv2.morphologyEx(trimmed_image, cv2.MORPH_OPEN, np.ones((5, 5)))
             trimmed_image = cv2.dilate(trimmed_image, np.ones((3, 3), np.uint8))
+            ret, trimmed_image = cv2.threshold(trimmed_image, 127, 255, cv2.THRESH_BINARY)
 
             visualized_trimmed_image = np.zeros((trimmed_image.shape[0], trimmed_image.shape[1], 3), dtype=np.uint8)
             visualized_trimmed_image[:, :, 0] = trimmed_image.copy()
