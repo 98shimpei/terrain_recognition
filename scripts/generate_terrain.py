@@ -108,7 +108,7 @@ for num in range(int(args[1])):
     for y in range(center_data.shape[0]):
         for x in range(center_data.shape[1]):
             distance = np.dot(np.array([x, y, center_data[y, x] * 100.0]) - a, n)
-            if distance > -2.0: #許容凹凸量(cm)
+            if distance > -2.3: #許容凹凸量(cm)
                 contact_region[y,x] = 255
     contours, hierarchy = cv2.findContours(contact_region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     tmp_array = np.empty((0, 2), dtype=np.int32)
@@ -126,7 +126,7 @@ for num in range(int(args[1])):
             for y in range(x_data.shape[0]):
                 for x in range(x_data.shape[1]):
                     distance = np.dot(np.array([x, y, x_data[y, x] * 100.0]) - a, n)
-                    if distance > 5.0: #cm
+                    if distance > 4.0: #cm
                         y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
 
     np.savetxt("../terrains/x/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", x_data, delimiter=",")
