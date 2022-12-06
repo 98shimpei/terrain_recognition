@@ -18,6 +18,8 @@
               /object_bbox
               /lhsensor
               /rhsensor
+              /output_polygon
+              /step_heightmap_pointcloud/output
               /is_stuck
               /steppable_image_output
               /trimmed_image_output
