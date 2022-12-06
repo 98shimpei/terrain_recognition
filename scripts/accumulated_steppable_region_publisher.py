@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import tensorflow as tef
+from tensorflow.keras import backend as K
 import numpy as np
 import random
 import math
@@ -52,9 +53,12 @@ class SteppableRegionPublisher:
 
         self.accumulated_steppable_image[150:350, 50:250] = np.ones((200, 200)) * 255
 
-        self.model_steppable = cnn_models.cnn_steppable((500, 300, 1), self.checkpoint_path)
-        self.model_height = cnn_models.cnn_height((500, 300, 1), self.checkpoint_path)
-        self.model_pose = cnn_models.cnn_pose((500, 300, 1), self.checkpoint_path)
+        tmp_model_steppable = cnn_models.cnn_steppable((500, 300, 1), self.checkpoint_path)
+        self.model_steppable = K.function([tmp_model_steppable.input], [tmp_model_steppable.output])
+        tmp_model_height = cnn_models.cnn_height((500, 300, 1), self.checkpoint_path)
+        self.model_height = K.function([tmp_model_height.input], [tmp_model_height.output])
+        tmp_model_pose = cnn_models.cnn_pose((500, 300, 1), self.checkpoint_path)
+        self.model_pose = K.function([tmp_model_pose.input], [tmp_model_pose.output])
 
         self.lock = threading.Lock()
 
@@ -104,7 +108,7 @@ class SteppableRegionPublisher:
         #steppable_regionの処理
 
         cnn_steppable_img = median_image.reshape((1, msg.height, msg.width, 1))
-        cnn_steppable_img = self.model_steppable.predict(cnn_steppable_img)
+        cnn_steppable_img = np.array(self.model_steppable([cnn_steppable_img])[0])
         np.nan_to_num(cnn_steppable_img, copy=False)
         cnn_steppable_img = np.argmax(cnn_steppable_img, axis=3)
         cnn_steppable_img = cnn_steppable_img.reshape((cnn_steppable_img.shape[1], cnn_steppable_img.shape[2], 1))
@@ -124,7 +128,7 @@ class SteppableRegionPublisher:
         #着地位置姿勢の処理
         
         cnn_height_img = median_image.reshape((1, msg.height, msg.width, 1))
-        cnn_height_img = self.model_height.predict(cnn_height_img)
+        cnn_height_img = np.array(self.model_height([cnn_height_img])[0])
         np.nan_to_num(cnn_height_img, copy=False)
         cnn_height_img = cnn_height_img.reshape((cnn_height_img.shape[1], cnn_height_img.shape[2], 1))
         #strideがある場合resize
@@ -137,7 +141,7 @@ class SteppableRegionPublisher:
 
 
         cnn_pose_img = median_image.reshape((1, msg.height, msg.width, 1))
-        cnn_pose_img = self.model_pose.predict(cnn_pose_img)
+        cnn_pose_img = np.array(self.model_pose([cnn_pose_img])[0])
         np.nan_to_num(cnn_pose_img, copy=False)
         cnn_pose_img = cnn_pose_img.reshape((cnn_pose_img.shape[1], cnn_pose_img.shape[2], 2))
         #strideがある場合resize
@@ -406,7 +410,6 @@ class SteppableRegionPublisher:
 
         step_heightmap_image = np.zeros(self.accumulated_height_image.shape)
         step_heightmap_image = np.dstack((self.accumulated_height_image, step_heightmap_image))
-        print(step_heightmap_image.shape)
         step_heightmap_msg = ros_numpy.msgify(Image, step_heightmap_image.astype(np.float32), encoding='32FC2')
         step_heightmap_msg.header = copy.deepcopy(msg.header)
         self.step_heightmap_publisher.publish(step_heightmap_msg)
