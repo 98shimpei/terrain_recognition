@@ -110,7 +110,7 @@ class SurfaceSaver:
                 tmp_vecy = [0.0, 1.0, pose[1]]
                 tmp_vecz = np.cross(tmp_vecx, tmp_vecy)
                 tmp_vecz = tmp_vecz / np.linalg.norm(tmp_vecz)
-                print("height: ", height)
+                print("height: ", height, " pose", pose)
             tmp_image = vision_image.copy()
             self.color += 0.014
             if self.color > 2:

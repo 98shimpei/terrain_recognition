@@ -36,14 +36,14 @@ for filename in os.listdir("../terrains/pose"):
 # 画像サイズ（高さ，幅，チャネル数）
 H, W, C = 21, 21, 1
 
-pitch = np.zeros((H, W, 1))
-roll = np.zeros((H, W, 1))
-scale = np.ones((H, W, 1))
+pitch = np.zeros((53, 53, 1))
+roll = np.zeros((53, 53, 1))
+scale = np.ones((53, 53, 1))
 
-for i in range(W):
-    for j in range(W):
-        pitch[i, j, 0] = (j-H/2.0)*0.01
-        roll[i, j, 0]  = (i-W/2.0)*0.01
+for i in range(53):
+    for j in range(53):
+        pitch[i, j, 0] = (j-26)*0.01
+        roll[i, j, 0]  = (i-26)*0.01
 
 def randomize(x, y):
     randomizer = np.arange(x.shape[0])
@@ -51,7 +51,7 @@ def randomize(x, y):
     return x[randomizer], y[randomizer]
 
 def generate_data(num):
-    x_data = np.zeros((num, H, W, C))
+    x_data = np.zeros((num, 53, 53, 1))
     y_data = np.zeros((num, 1, 1, 3))
     for i in range(num):
         #terrain
@@ -59,7 +59,7 @@ def generate_data(num):
             terrain_index = math.floor(random.random()*len(terrains_x))
             while (terrains_y[terrain_index][0] == -1):
                 terrain_index = math.floor(random.random()*len(terrains_x))
-            x_data[i, :, :, 0] += terrains_x[terrain_index][16:37,16:37]
+            x_data[i, :, :, 0] += terrains_x[terrain_index]
             y_tmp = terrains_y[terrain_index]
             y_n = np.array([y_tmp[1], y_tmp[2], y_tmp[3]])
             #for j in range(2):
@@ -75,7 +75,7 @@ def generate_data(num):
             #    elif tmp < 0.4:
             #        x_data[i, :, x_data.shape[2]-l:x_data.shape[2], 0] -= h * np.ones((x_data.shape[1], l))
         else:
-            x_data[i, :, :, 0] += pose_terrains[math.floor(random.random()*len(pose_terrains))][16:37,16:37]
+            x_data[i, :, :, 0] += pose_terrains[math.floor(random.random()*len(pose_terrains))]
 
         #rotate
         theta = random.random() * 360
@@ -88,7 +88,7 @@ def generate_data(num):
         surface_index = math.floor(random.random()*len(surfaces))
         surface_x = math.floor(random.random() * (surfaces[surface_index].shape[1] - 21))
         surface_y = math.floor(random.random() * (surfaces[surface_index].shape[0] - 21))
-        x_data[i, :, :, 0] += surfaces[surface_index][surface_y:surface_y+21, surface_x:surface_x+21]
+        x_data[i, 16:37, 16:37, 0] += surfaces[surface_index][surface_y:surface_y+21, surface_x:surface_x+21]
         
         #tilt
         p = 2.0*random.random() - 1.0
@@ -96,6 +96,7 @@ def generate_data(num):
         s = 1.0*random.random() - 0.5
         x_data[i] += p * pitch + r * roll + s * scale# + 0.05*np.random.rand(H, W, 1) - 0.025 * np.ones((H, W, 1))
         y_data[i, 0, 0] = np.array([p + (-y_n[0]/y_n[2]), r + (-y_n[1]/y_n[2]), s + y_tmp[4]])
+
     #for i in range(math.floor(num*0.8)):
     #    n = math.floor(7 * random.random())
     #    for j in range(n):
@@ -125,7 +126,7 @@ def generate_data(num):
     #for i in range(math.floor(num*0.1)):
     #    l = math.floor(random.random()*6)+1
     #    x_data[i, :, x_data.shape[2]-l : x_data.shape[2], 0] -= np.ones((x_data.shape[1], l)) * random.random() * 0.4
-
+    x_data = x_data[:,16:37,16:37]
     return x_data, y_data
 
 x_train, y_train = generate_data(int(args[1]))

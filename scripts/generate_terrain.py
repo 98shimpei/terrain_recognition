@@ -78,7 +78,6 @@ for num in range(int(args[1])):
     x_data -= max_h
     #x_data = cv2.medianBlur(x_data.astype(np.float32), 5)
 
-
     #地形認識
     center_data = x_data[16:37, 16:37]
     array = []
