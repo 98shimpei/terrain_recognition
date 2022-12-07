@@ -96,7 +96,6 @@ class SteppableRegionPublisher:
             self.listener.waitForTransform(self.fixed_frame, "BODY", msg.header.stamp, rospy.Duration(1.0))
             p, q = self.listener.lookupTransform(self.fixed_frame, "BODY", msg.header.stamp)
             self.standard_height = p[2]-0.9 #足平付近のワールド座標でみた高さ
-            print(self.standard_height)
         except:
             print("body tf error")
             return
