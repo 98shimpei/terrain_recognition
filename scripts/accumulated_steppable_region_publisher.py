@@ -60,6 +60,7 @@ class SteppableRegionPublisher:
         tmp_model_pose = cnn_models.cnn_pose((500, 300, 1), self.checkpoint_path)
         self.model_pose = K.function([tmp_model_pose.input], [tmp_model_pose.output])
 
+        self.standard_height = 0
         self.lock = threading.Lock()
 
         self.height_publisher = rospy.Publisher('AutoStabilizerROSBridge/landing_height', OnlineFootStep, queue_size=1)
@@ -91,6 +92,15 @@ class SteppableRegionPublisher:
         if not self.heightmap_config_flag:
             return
 
+        try:
+            self.listener.waitForTransform(self.fixed_frame, "BODY", msg.header.stamp, rospy.Duration(1.0))
+            p, q = self.listener.lookupTransform(self.fixed_frame, "BODY", msg.header.stamp)
+            self.standard_height = p[2]-0.9 #足平付近のワールド座標でみた高さ
+            print(self.standard_height)
+        except:
+            print("body tf error")
+            return
+
         #input_image = np.frombuffer(msg.data, dtype=np.float32).reshape(msg.height, msg.width, -1)
         input_image = ros_numpy.numpify(msg)
         median_image = cv2.medianBlur(input_image[:, :, 0], 5)
@@ -107,7 +117,7 @@ class SteppableRegionPublisher:
             print("begin_a", (a_time - begin_time).secs, "s", (int)((a_time - begin_time).nsecs / 1000000), "ms")
         #steppable_regionの処理
 
-        cnn_steppable_img = median_image.reshape((1, msg.height, msg.width, 1))
+        cnn_steppable_img = median_image.reshape((1, msg.height, msg.width, 1)) - self.standard_height
         cnn_steppable_img = np.array(self.model_steppable([cnn_steppable_img])[0])
         np.nan_to_num(cnn_steppable_img, copy=False)
         cnn_steppable_img = np.argmax(cnn_steppable_img, axis=3)
@@ -127,7 +137,7 @@ class SteppableRegionPublisher:
             print("a_b", (b_time - a_time).secs, "s", (int)((b_time - a_time).nsecs / 1000000), "ms")
         #着地位置姿勢の処理
         
-        cnn_height_img = median_image.reshape((1, msg.height, msg.width, 1))
+        cnn_height_img = median_image.reshape((1, msg.height, msg.width, 1)) - self.standard_height
         cnn_height_img = np.array(self.model_height([cnn_height_img])[0])
         np.nan_to_num(cnn_height_img, copy=False)
         cnn_height_img = cnn_height_img.reshape((cnn_height_img.shape[1], cnn_height_img.shape[2], 1))
@@ -138,9 +148,10 @@ class SteppableRegionPublisher:
         tmpx = math.floor((msg.width - cnn_height_img.shape[1])/2)
         tmp_img[tmpy : tmpy+cnn_height_img.shape[0], tmpx : tmpx+cnn_height_img.shape[1]] = cnn_height_img.copy()
         cnn_height_img = tmp_img.copy()
+        cnn_height_img = cnn_height_img + self.standard_height
 
 
-        cnn_pose_img = median_image.reshape((1, msg.height, msg.width, 1))
+        cnn_pose_img = median_image.reshape((1, msg.height, msg.width, 1)) - self.standard_height
         cnn_pose_img = np.array(self.model_pose([cnn_pose_img])[0])
         np.nan_to_num(cnn_pose_img, copy=False)
         cnn_pose_img = cnn_pose_img.reshape((cnn_pose_img.shape[1], cnn_pose_img.shape[2], 2))
