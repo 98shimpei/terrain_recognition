@@ -51,7 +51,7 @@ class SteppableRegionPublisher:
         self.accumulated_pose_image = np.zeros((self.accumulate_length, self.accumulate_length, 2))
         self.accumulated_yaw_image = np.zeros((self.accumulate_length, self.accumulate_length))
 
-        self.accumulated_steppable_image[150:350, 50:250] = np.ones((200, 200)) * 255
+        self.accumulated_steppable_image[self.accumulate_center_y - 100:self.accumulate_center_y + 100, self.accumulate_center_x - 100:self.accumulate_center_x + 100] = np.ones((200, 200)) * 255
 
         tmp_model_steppable = cnn_models.cnn_steppable((500, 300, 1), self.checkpoint_path)
         self.model_steppable = K.function([tmp_model_steppable.input], [tmp_model_steppable.output])
