@@ -31,7 +31,7 @@ count = 0
 for num in range(int(args[1])):
     x_data = np.zeros((53, 53))
     if random.random() < 0.1: #足平内の段差
-        begin = 16 + int(np.random.random() * 21)
+        begin = 15 + int(np.random.random() * 23)
         height = np.random.random() * 0.2
         x_data[begin:, :] += height * np.ones((x_data.shape[0] - begin, x_data.shape[1]))
         theta = random.random() * 360
@@ -74,33 +74,31 @@ for num in range(int(args[1])):
         y = math.floor(random.random()*(54-l))
         h = random.random() * 0.3
         x_data[x:x+l, y:y+l] -= h
-    max_h = np.max(x_data[16:37, 16:37])
+    max_h = np.max(x_data[15:38, 15:38])
     x_data -= max_h
     #x_data = cv2.medianBlur(x_data.astype(np.float32), 5)
 
     #地形認識
-    center_data = x_data[16:37, 16:37]
+    center_data = x_data[15:38, 15:38]
     array = []
     for y in range(center_data.shape[0]):
         for x in range(center_data.shape[1]):
             array.append([x, y, center_data[y, x] * 100.0]) #cm換算 (cell換算)
     array.append([0,0,-1000])
-    array.append([0,20,-1000])
-    array.append([20,0,-1000])
-    array.append([20,20,-1000])
+    array.append([0,22,-1000])
+    array.append([22,0,-1000])
+    array.append([22,22,-1000])
     array = np.array(array)
     hull = ConvexHull(array)
     n = np.array([0,0,0]) #接触面の垂線
     a = np.array([0,0,0]) #接触面上の点
     for simplice in hull.simplices:
-        if is_inner_polygon(array, simplice, np.array([10, 10, center_data[10,10] * 100.0])): #中央の点が含まれるポリゴン
+        if is_inner_polygon(array, simplice, np.array([11, 11, center_data[11,11] * 100.0])): #中央の点が含まれるポリゴン
             n = np.cross(array[simplice[1]] - array[simplice[0]], array[simplice[2]] - array[simplice[1]])
             n = n / np.linalg.norm(n) * np.sign(n[2])
             a = array[simplice[0]]
             break
-    #y_data = np.array([1, 0.01 * -n[1]/n[2], 0.01 * -n[0]/n[2], 0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
-    #y_data    steppability(1/0),  x1cellあたりのz傾き(m),  y1cellあたりのz傾き(m),  中央高さ(m)
-    y_data = np.array([1, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
+    y_data = np.array([1, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
     #y_data    steppability(1/0),  x1cellあたりのz傾き(m),  y1cellあたりのz傾き(m),  中央高さ(m)
 
     #接触凸包の計算
@@ -108,7 +106,7 @@ for num in range(int(args[1])):
     for y in range(center_data.shape[0]):
         for x in range(center_data.shape[1]):
             distance = np.dot(np.array([x, y, center_data[y, x] * 100.0]) - a, n)
-            if distance > -2.3: #許容凹凸量(cm)
+            if distance > -2.5: #許容凹凸量(cm)
                 contact_region[y,x] = 255
     contours, hierarchy = cv2.findContours(contact_region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     tmp_array = np.empty((0, 2), dtype=np.int32)
@@ -116,18 +114,18 @@ for num in range(int(args[1])):
         if cv2.contourArea(cnt) > 8: #支持点の最小サイズ(cm^2)
             tmp_array = np.concatenate([tmp_array, cnt.reshape([int(cnt.size/2),2])])
     if tmp_array.size == 0:
-        y_data = np.array([-1, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
+        y_data = np.array([-1, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
     else:
         cvhull = cv2.convexHull(tmp_array)
-        if not(cv2.pointPolygonTest(cvhull, (0, 10), False) >= 0 and cv2.pointPolygonTest(cvhull, (10, 0), False) >= 0 and cv2.pointPolygonTest(cvhull, (20, 10), False) >= 0 and cv2.pointPolygonTest(cvhull, (10, 20), False) >= 0): #十分な広さの接触凸包があるかどうか
-            y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
+        if not(cv2.pointPolygonTest(cvhull, (3, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 3), False) >= 0 and cv2.pointPolygonTest(cvhull, (19, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 19), False) >= 0): #十分な広さの接触凸包があるかどうか
+            y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
         else:
             #周りに遊脚を阻害する障害物があるかどうか
             for y in range(x_data.shape[0]):
                 for x in range(x_data.shape[1]):
                     distance = np.dot(np.array([x, y, x_data[y, x] * 100.0]) - a, n)
                     if distance > 4.0: #cm
-                        y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([10, 10, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
+                        y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
 
     np.savetxt("../terrains/x/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", x_data, delimiter=",")
     np.savetxt("../terrains/y/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", y_data, delimiter=",")

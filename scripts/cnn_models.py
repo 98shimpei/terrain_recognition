@@ -38,7 +38,7 @@ def cnn_steppable(input_shape, checkpoint_path): #37->17->11->5->1
 
     return model
 
-def cnn_pose(input_shape, checkpoint_path): #21->9->5->1
+def cnn_pose(input_shape, checkpoint_path): #25->11->7->1
     model = tef.keras.models.Sequential()
 
     # conv1
@@ -52,7 +52,7 @@ def cnn_pose(input_shape, checkpoint_path): #21->9->5->1
     model.add(tef.keras.layers.ReLU())
 
     # conv4
-    model.add(tef.keras.layers.Conv2D(16, (5, 5)))
+    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.Dense(2, activation='linear'))
 
@@ -78,7 +78,7 @@ def cnn_height(input_shape, checkpoint_path):
     model.add(tef.keras.layers.ReLU())
 
     # conv4
-    model.add(tef.keras.layers.Conv2D(16, (5, 5)))
+    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.Dense(1, activation='linear'))
 

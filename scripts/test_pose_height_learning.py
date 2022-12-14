@@ -8,6 +8,8 @@ import time
 import sys
 import cnn_models
 import os
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 args = sys.argv
@@ -57,7 +59,8 @@ def generate_data(num):
         #terrain
         if i < num*1.0:
             terrain_index = math.floor(random.random()*len(terrains_x))
-            while (terrains_y[terrain_index][0] == -1):
+            #while (terrains_y[terrain_index][0] != 1):
+            while (terrains_y[terrain_index][0] == -1):#着地不可能領域を含める
                 terrain_index = math.floor(random.random()*len(terrains_x))
             x_data[i, :, :, 0] += terrains_x[terrain_index]
             y_tmp = terrains_y[terrain_index]
@@ -85,15 +88,18 @@ def generate_data(num):
         y_n[:2] = np.dot(R, y_n[:2])
 
         #surface
-        surface_index = math.floor(random.random()*len(surfaces))
-        surface_x = math.floor(random.random() * (surfaces[surface_index].shape[1] - 25))
-        surface_y = math.floor(random.random() * (surfaces[surface_index].shape[0] - 25))
-        x_data[i, 14:39, 14:39, 0] += surfaces[surface_index][surface_y:surface_y+25, surface_x:surface_x+25]
+        #surface_index = math.floor(random.random()*len(surfaces))
+        #surface_x = math.floor(random.random() * (surfaces[surface_index].shape[1] - 25))
+        #surface_y = math.floor(random.random() * (surfaces[surface_index].shape[0] - 25))
+        #x_data[i, 14:39, 14:39, 0] += surfaces[surface_index][surface_y:surface_y+25, surface_x:surface_x+25]
         
         #tilt
         p = 2.0*random.random() - 1.0
         r = 2.0*random.random() - 1.0
         s = 1.0*random.random() - 0.5
+        p = 0
+        r = 0
+        s = 0
         x_data[i] += p * pitch + r * roll + s * scale# + 0.05*np.random.rand(H, W, 1) - 0.025 * np.ones((H, W, 1))
         y_data[i, 0, 0] = np.array([p + (-y_n[0]/y_n[2]), r + (-y_n[1]/y_n[2]), s + y_tmp[4]])
 
@@ -130,81 +136,78 @@ def generate_data(num):
     return x_data, y_data
 
 x_train, y_train = generate_data(int(args[1]))
-x_test, y_test = generate_data(100)
 
-#----------------------------
-# 学習
-print("pose")
-if "w" in args[3]:
-    model_pose = cnn_models.cnn_pose((H,W,C), "../checkpoints/checkpoint")
-else:
-    model_pose = cnn_models.cnn_pose((H,W,C), "")
-if "v" in args[3]:
-    model_pose.summary()
-if "f" in args[3]:
-    model_pose.fit(x_train, y_train[:,:,:,:2], batch_size=100, epochs=int(args[2]))
-    model_pose.save_weights('../checkpoints/checkpoint/checkpoint_pose')
+model_pose = cnn_models.cnn_pose((H,W,C), "../checkpoints/checkpoint")
+model_pose.summary()
+model_height = cnn_models.cnn_height((H,W,C), "../checkpoints/checkpoint")
+model_height.summary()
 
+cnn_height_diff = 0
+pca_height_diff = 0
+cnn_pose_diff = 0
+pca_pose_diff = 0
 
-print("height")
-if "w" in args[3]:
-    model_height = cnn_models.cnn_height((H,W,C), "../checkpoints/checkpoint")
-else:
-    model_height = cnn_models.cnn_height((H,W,C), "")
-if "v" in args[3]:
-    model_height.summary()
-if "f" in args[3]:
-    model_height.fit(x_train, y_train[:,:,:,2], batch_size=100, epochs=int(args[2]))
-    model_height.save_weights('../checkpoints/checkpoint/checkpoint_height')
-#----------------------------
+for i in range(x_train.shape[0]):
+    print(i)
+    cnn_pose_y = model_pose.predict(x_train[i:i+1])
+    cnn_height_y = model_height.predict(x_train[i:i+1])
 
-#----------------------------
-# 学習データに対する評価
-#train_loss, train_accuracy = model.evaluate(x_train, y_train, verbose=0)
-train_loss, train_mae, train_mse = model_height.evaluate(x_train, y_train[:,:,:,2], verbose=0)
-print("height train mae: ", train_mae)
+    data = x_train[i]
+    average = np.average(data)
+    cloud = np.zeros((data.shape[0] * data.shape[1], 3))
+    for y in range(data.shape[0]):
+        for x in range(data.shape[1]):
+            cloud[y*data.shape[1]+x, 0] = 0.01*x
+            cloud[y*data.shape[1]+x, 1] = 0.01*y
+            cloud[y*data.shape[1]+x, 2] = data[y, x, 0]
+    mean, eigenvectors, eigenvalues = cv2.PCACompute2(cloud, np.empty((0)))
+    n = eigenvectors[2]
+    if n[2] < 0:
+        n = -n
+    
+    cnn_height_diff += np.abs(cnn_height_y[0,0,0,0] - y_train[i,0,0,2])
+    pca_height_diff += np.abs(average - y_train[i,0,0,2])
 
-train_loss, train_mae, train_mse = model_pose.evaluate(x_train, y_train[:,:,:,:2], verbose=0)
-print("pose  train mae: ", train_mae)
+    answer_x = np.array([1.0, 0.0, y_train[i,0,0,0]])
+    answer_y = np.array([0.0, 1.0, y_train[i,0,0,1]])
+    answer_n = np.cross(answer_x,answer_y)
+    answer_n = answer_n / np.linalg.norm(answer_n)
+    cnn_x = np.array([1.0, 0.0, cnn_pose_y[0,0,0,0]])
+    cnn_y = np.array([0.0, 1.0, cnn_pose_y[0,0,0,1]])
+    cnn_n = np.cross(cnn_x,cnn_y)
+    cnn_n = cnn_n / np.linalg.norm(cnn_n)
 
-#----------------------------
+    cnn_pose_diff += answer_n.dot(cnn_n)
+    pca_pose_diff += answer_n.dot(n)
 
-#----------------------------
-# 評価データに対する評価
-test_loss, test_mae, test_mse = model_height.evaluate(x_test, y_test[:,:,:,2], verbose=0)
-print("height train mae: ", test_mae)
+    #print(-n[0]/n[2], -n[1]/n[2], average)
+    #print(y_train[i])
+    #print(cnn_pose_y, cnn_height_y)
 
-test_loss, test_mae, test_mse = model_pose.evaluate(x_test, y_test[:,:,:,:2], verbose=0)
-print("pose  train mae: ", test_mae)
-#
-#print("answer")
-#print(y_test[0])
-#print("predict")
-#print(model.predict(x_test[:1]))
+    #answercloud = np.zeros((data.shape[0] * data.shape[1], 3))
+    #cnncloud = np.zeros((data.shape[0] * data.shape[1], 3))
+    #pcacloud = np.zeros((data.shape[0] * data.shape[1], 3))
+    #for y in range(data.shape[0]):
+    #    for x in range(data.shape[1]):
+    #        answercloud[y*data.shape[1]+x, 0] = 0.01*x
+    #        answercloud[y*data.shape[1]+x, 1] = 0.01*y
+    #        answercloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*y_train[i,0,0,0] + (y-12)*y_train[i,0,0,1])+y_train[i,0,0,2]
+    #        pcacloud[y*data.shape[1]+x, 0] = 0.01*x
+    #        pcacloud[y*data.shape[1]+x, 1] = 0.01*y
+    #        pcacloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*(-n[0]/n[2]) + (y-12)*(-n[1]/n[2]))+average
+    #        cnncloud[y*data.shape[1]+x, 0] = 0.01*x
+    #        cnncloud[y*data.shape[1]+x, 1] = 0.01*y
+    #        cnncloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*cnn_pose_y[0,0,0,0] + (y-12)*cnn_pose_y[0,0,0,1])+cnn_height_y[0,0,0,0]
+    #
+    #fig = plt.figure()
+    #ax = fig.add_subplot(projection='3d')
+    #ax.scatter(cloud[:,0], cloud[:,1], cloud[:,2] - average, label="data")
+    #ax.scatter(answercloud[:,0], answercloud[:,1], answercloud[:,2] - average, label="correct")
+    #ax.scatter(cnncloud[:,0], cnncloud[:,1], cnncloud[:,2] - average, label="cnn")
+    #ax.scatter(pcacloud[:,0], pcacloud[:,1], pcacloud[:,2] - average, label="pca")
+    #ax.set_zlim(-0.1, 0.1)
+    #ax.legend(bbox_to_anchor=(0, 0), loc='upper left')
+    #plt.show()
 
-
-if "v" in args[3]:
-    cv2.imshow('test',x_test[0] * 1.0 + 0.5)
-    cv2.waitKey(1)
-
-    for i in range(1):
-        print("answer")
-        print(y_train[i])
-        print("predict")
-        print(model_pose.predict(x_train[i:i+1]))
-        print(model_height.predict(x_train[i:i+1]))
-        cv2.imshow('test',x_train[i] * 1.0 + 0.5)
-        cv2.waitKey(1)
-        #time.sleep(5)
-        print("---")
-
-    for i in range(5):
-        print("answer")
-        print(y_test[i])
-        print("predict")
-        print(model_pose.predict(x_test[i:i+1]))
-        print(model_height.predict(x_test[i:i+1]))
-        cv2.imshow('test',x_test[i] * 1.0 + 0.5)
-        cv2.waitKey(1)
-        #time.sleep(5)
-        print("---")
+print(cnn_height_diff/x_train.shape[0], pca_height_diff/x_train.shape[0])
+print((cnn_pose_diff)/x_train.shape[0], (pca_pose_diff)/x_train.shape[0])
