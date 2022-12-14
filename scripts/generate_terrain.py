@@ -106,7 +106,7 @@ for num in range(int(args[1])):
     for y in range(center_data.shape[0]):
         for x in range(center_data.shape[1]):
             distance = np.dot(np.array([x, y, center_data[y, x] * 100.0]) - a, n)
-            if distance > -2.5: #許容凹凸量(cm)
+            if distance > -2.3: #許容凹凸量(cm)
                 contact_region[y,x] = 255
     contours, hierarchy = cv2.findContours(contact_region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     tmp_array = np.empty((0, 2), dtype=np.int32)
@@ -117,7 +117,7 @@ for num in range(int(args[1])):
         y_data = np.array([-1, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
     else:
         cvhull = cv2.convexHull(tmp_array)
-        if not(cv2.pointPolygonTest(cvhull, (3, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 3), False) >= 0 and cv2.pointPolygonTest(cvhull, (19, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 19), False) >= 0): #十分な広さの接触凸包があるかどうか
+        if not(cv2.pointPolygonTest(cvhull, (2, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 2), False) >= 0 and cv2.pointPolygonTest(cvhull, (20, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 20), False) >= 0): #十分な広さの接触凸包があるかどうか
             y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
         else:
             #周りに遊脚を阻害する障害物があるかどうか
