@@ -10,6 +10,7 @@ import sys
 import cnn_models
 import os
 from scipy.spatial import ConvexHull
+import time
 
 def is_inner_polygon(array, indices, points):
     if array[indices[0]][2] < -500 or array[indices[1]][2] < -500 or array[indices[2]][2] < -500:
@@ -117,14 +118,14 @@ for num in range(int(args[1])):
         y_data = np.array([-1, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
     else:
         cvhull = cv2.convexHull(tmp_array)
-        if not(cv2.pointPolygonTest(cvhull, (2, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 2), False) >= 0 and cv2.pointPolygonTest(cvhull, (20, 11), False) >= 0 and cv2.pointPolygonTest(cvhull, (11, 20), False) >= 0): #十分な広さの接触凸包があるかどうか
+        if not(cv2.pointPolygonTest(cvhull, (3, 6), False) >= 0 and cv2.pointPolygonTest(cvhull, (3, 16), False) >= 0 and cv2.pointPolygonTest(cvhull, (6, 3), False) >= 0 and cv2.pointPolygonTest(cvhull, (16, 3), False) >= 0 and cv2.pointPolygonTest(cvhull, (19, 6), False) >= 0 and cv2.pointPolygonTest(cvhull, (19, 16), False) >= 0 and cv2.pointPolygonTest(cvhull, (6, 19), False) >= 0 and cv2.pointPolygonTest(cvhull, (16, 19), False) >= 0): #十分な広さの接触凸包があるかどうか
             y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
         else:
             #周りに遊脚を阻害する障害物があるかどうか
             for y in range(x_data.shape[0]):
                 for x in range(x_data.shape[1]):
                     distance = np.dot(np.array([x, y, x_data[y, x] * 100.0]) - a, n)
-                    if distance > 4.0: #cm
+                    if np.sqrt(np.linalg.norm(np.array([x, y], dtype=np.float) - np.array([(x_data.shape[0] - 1)/2., (x_data.shape[1] - 1)/2.]))) <= 19.0 and distance > 4.0: #cm
                         y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n)])
 
     np.savetxt("../terrains/x/"+args[2]+nowdate.strftime('%y%m%d_%H%M%S')+"_"+str(num)+".csv", x_data, delimiter=",")

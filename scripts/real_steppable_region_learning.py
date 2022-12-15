@@ -134,9 +134,12 @@ print('Test data accuracy:', test_accuracy)
 if "v" in args[3]:
     cv2.imshow('test',x_test[0] * 1.0 + 0.5)
 
-    hoge_train = np.zeros((1, 37, 37, 1))
-    print("hoge")
-    print(np.argmax(model_steppable_region.predict(hoge_train), axis=3))
+    for i in range(18):
+        hoge_train = np.zeros((1, 37, 37, 1))
+        hoge_train[0, i:, :, 0] += 0.15 * np.ones((37-i, 37))
+        hoge_train[0,:,:] += 0.1 * pitch[8:45, 8:45]
+        print("fuga", i)
+        print(np.argmax(model_steppable_region.predict(hoge_train), axis=3))
     print("hoge2")
     hoge_train[0,:,:] += 1.0 * pitch[8:45, 8:45]
     print(np.argmax(model_steppable_region.predict(hoge_train), axis=3))
