@@ -50,6 +50,7 @@ class SteppableRegionPublisher:
         self.accumulated_height_image = np.zeros((self.accumulate_length, self.accumulate_length))
         self.accumulated_pose_image = np.zeros((self.accumulate_length, self.accumulate_length, 2))
         self.accumulated_yaw_image = np.zeros((self.accumulate_length, self.accumulate_length))
+        self.accumulated_update_image = np.zeros((self.accumulate_length, self.accumulate_length))
 
         self.accumulated_steppable_image[self.accumulate_center_y - 100:self.accumulate_center_y + 100, self.accumulate_center_x - 100:self.accumulate_center_x + 100] = np.ones((200, 200)) * 255
 
@@ -191,6 +192,7 @@ class SteppableRegionPublisher:
             self.accumulated_height_image = cv2.warpAffine(self.accumulated_height_image, trans_cv, (self.accumulated_height_image.shape[1], self.accumulated_height_image.shape[0]))
             self.accumulated_pose_image = cv2.warpAffine(self.accumulated_pose_image, trans_cv, (self.accumulated_pose_image.shape[1], self.accumulated_pose_image.shape[0]))
             self.accumulated_yaw_image = cv2.warpAffine(self.accumulated_yaw_image, trans_cv, (self.accumulated_yaw_image.shape[1], self.accumulated_yaw_image.shape[0]))
+            self.accumulated_update_image = cv2.warpAffine(self.accumulated_update_image, trans_cv, (self.accumulated_update_image.shape[1], self.accumulated_update_image.shape[0]))
 
             tmp_x = self.accumulate_center_x + self.heightmap_minx
             tmp_y = self.accumulate_center_y + self.heightmap_miny
@@ -203,6 +205,8 @@ class SteppableRegionPublisher:
             self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_pose_img * np.dstack((update_pixel, update_pixel)) + self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - np.dstack((update_pixel, update_pixel)))
             current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
             self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = current_yaw_img * update_pixel + self.accumulated_yaw_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
+            self.accumulated_update_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = update_pixel.astype(np.float32) + self.accumulated_update_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
+            tmp, self.accumulated_update_image = cv2.threshold(self.accumulated_update_image, 0.5, 1, cv2.THRESH_BINARY)
 
             d_time = rospy.Time.now()
             if self.debug_output:
@@ -473,8 +477,9 @@ class SteppableRegionPublisher:
             img_H[:3, 3] = np.array([-self.accumulate_center_x, -self.accumulate_center_y, 0])
             cur_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.cur_foot_pos, 1)
             next_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.next_foot_pos, 1)
-            self.cur_foot_pos[2] = self.accumulated_height_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] * 100
-            self.next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
+            if self.accumulated_update_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] > 0.5 and self.accumulated_update_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] > 0.5: #updateしたところでなければ更新しない
+                self.cur_foot_pos[2] = self.accumulated_height_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] * 100
+                self.next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
 
             cur_foot_ground_H = np.identity(4)
             cur_foot_ground_H[:3, :3] = self.cur_foot_rot_ground
