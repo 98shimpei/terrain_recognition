@@ -486,6 +486,9 @@ class SteppableRegionPublisher:
         with self.lock:
             cur_tmp = self.center_H_img_H_inv[:3, :] @ np.append(self.cur_foot_pos, 1)
             next_tmp = self.center_H_img_H_inv[:3, :] @ np.append(next_foot_pos, 1)
+            if np.isnan(cur_tmp[0]) or np.isnan(cur_tmp[1]) or np.isnan(next_tmp[0]) or np.isnan(next_tmp[1]):
+                print("nan detected")
+                return
             if self.accumulated_update_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] > 0.5 and self.accumulated_update_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] > 0.5: #updateしたところでなければ更新しない
                 self.cur_foot_pos[2] = self.accumulated_height_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] * 100
                 next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
