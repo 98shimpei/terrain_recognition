@@ -47,6 +47,7 @@ class SteppableRegionPublisher:
 
         self.listener = tf.TransformListener()
         self.center_H = np.identity(4)
+        self.center_H_img_H_inv = np.identity(4)
         self.prev_H = np.identity(4)
         self.convex_list = []
         self.accumulated_steppable_image = np.zeros((self.accumulate_length, self.accumulate_length))
@@ -190,6 +191,7 @@ class SteppableRegionPublisher:
             tmp_H = np.linalg.inv(self.center_H @ img_H) @ (self.prev_H @ img_H)
             trans_cv = np.delete(tmp_H[:2, :], 2, 1)
             self.prev_H = self.center_H.copy()
+            self.center_H_img_H_inv = np.linalg.inv(self.center_H @ img_H)
 
             self.accumulated_steppable_image = cv2.warpAffine(self.accumulated_steppable_image, trans_cv, (self.accumulated_steppable_image.shape[1], self.accumulated_steppable_image.shape[0]), flags=cv2.INTER_NEAREST)
             self.accumulated_height_image = cv2.warpAffine(self.accumulated_height_image, trans_cv, (self.accumulated_height_image.shape[1], self.accumulated_height_image.shape[0]))
@@ -482,10 +484,8 @@ class SteppableRegionPublisher:
         next_foot_pos = self.cur_foot_pos + self.cur_foot_rot_ground @ (np.array([msg.x, msg.y, msg.z]) * 100)
 
         with self.lock:
-            img_H = np.identity(4)
-            img_H[:3, 3] = np.array([-self.accumulate_center_x, -self.accumulate_center_y, 0])
-            cur_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.cur_foot_pos, 1)
-            next_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(next_foot_pos, 1)
+            cur_tmp = self.center_H_img_H_inv[:3, :] @ np.append(self.cur_foot_pos, 1)
+            next_tmp = self.center_H_img_H_inv[:3, :] @ np.append(next_foot_pos, 1)
             if self.accumulated_update_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] > 0.5 and self.accumulated_update_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] > 0.5: #updateしたところでなければ更新しない
                 self.cur_foot_pos[2] = self.accumulated_height_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] * 100
                 next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
@@ -499,6 +499,7 @@ class SteppableRegionPublisher:
                 sr.header = copy.deepcopy(msg.header)
                 sr.header.frame_id = target_frame
                 sr.l_r = msg.l_r
+                cur_foot_ground_H_inv = np.linalg.inv(cur_foot_ground_H)
                 for v in self.convex_list:
                     ps = PolygonStamped()
                     ps.header = sr.header
@@ -507,7 +508,7 @@ class SteppableRegionPublisher:
                         tmp = np.array([p.x - self.trim_center_x, p.y - self.trim_center_y, self.accumulated_height_image[math.floor(p.y - self.trim_center_y + self.accumulate_center_y), math.floor(p.x - self.trim_center_x + self.accumulate_center_x)] * 100.0, 1])
                         if tmp[2] < -1e+10:
                             tmp[2] = 0
-                        tmp = np.linalg.inv(cur_foot_ground_H) @ self.center_H @ tmp
+                        tmp = cur_foot_ground_H_inv @ self.center_H @ tmp
                         tmp = tmp * 0.01
                         p32.x = tmp[0]
                         p32.y = tmp[1]
