@@ -34,8 +34,8 @@ class SurfaceSaver:
         self.sum_image = np.zeros((53, 53))
         self.sum_counter = 0
         self.model_steppable = cnn_models.cnn_steppable((37, 37, 1), "../checkpoints/checkpoint")
-        self.model_height = cnn_models.cnn_height((25, 25, 1), "../checkpoints/checkpoint")
-        self.model_pose = cnn_models.cnn_pose((25, 25, 1), "../checkpoints/checkpoint")
+        self.model_height = cnn_models.cnn_height((21, 21, 1), "../checkpoints/checkpoint")
+        self.model_pose = cnn_models.cnn_pose((21, 21, 1), "../checkpoints/checkpoint")
 
         self.marker_publisher = rospy.Publisher('landing_pose_marker', Marker, queue_size = 1)
         rospy.Subscriber('rt_filtered_current_heightmap/output', Image, self.surfaceSaver, queue_size=1, buff_size=2**24)
@@ -55,13 +55,13 @@ class SurfaceSaver:
             self.mouse_y2 = math.floor(500-y/2.0)
             self.drag = False
 
-    def publishPoseMsg(self, header, id_, action, start_pos, ez, is_steppable):
+    def publishPoseMsg(self, header, action, start_pos, ez, is_steppable):
         end_pos = start_pos + 0.3 * ez
         pose_msg = Marker()
         pose_msg.header = copy.deepcopy(header)
         pose_msg.header.stamp = rospy.Time.now()
         pose_msg.ns = "recognized_pose"
-        pose_msg.id = id_
+        pose_msg.id = 0
         pose_msg.type = Marker.ARROW
         pose_msg.action = action
         start = Point()
@@ -74,11 +74,7 @@ class SurfaceSaver:
         end.z = end_pos[2]
         pose_msg.points.append(start)
         pose_msg.points.append(end)
-        if id_ == 1:
-            pose_msg.color.r = 0.2
-            pose_msg.color.g = 0.2
-            pose_msg.color.b = 1.0
-        elif is_steppable:
+        if is_steppable:
             pose_msg.color.r = 0.2
             pose_msg.color.g = 1.0
             pose_msg.color.b = 0.2
@@ -87,7 +83,7 @@ class SurfaceSaver:
             pose_msg.color.g = 0.2
             pose_msg.color.b = 0.2
         pose_msg.color.a = 1.0
-        pose_msg.scale.x = 0.01
+        pose_msg.scale.x = 0.03
         pose_msg.scale.y = 0.05
         pose_msg.scale.z = 0.07
         pose_msg.pose.orientation.w = 1.0
@@ -108,28 +104,13 @@ class SurfaceSaver:
                 predict_image = input_image.copy()
                 predict_image = predict_image.reshape((1,input_image.shape[0],input_image.shape[1],1))
                 is_steppable = np.argmax(self.model_steppable.predict(predict_image[:,self.mouse_y1-18:self.mouse_y1+19, self.mouse_x1-18:self.mouse_x1+19, :]))
-                height = self.model_height.predict(predict_image[:, self.mouse_y1-12:self.mouse_y1+13, self.mouse_x1-12:self.mouse_x1+13, :])[0,0,0,0]
-                pose = self.model_pose.predict(predict_image[:, self.mouse_y1-12:self.mouse_y1+13, self.mouse_x1-12:self.mouse_x1+13, :])[0,0,0]
+                height = self.model_height.predict(predict_image[:, self.mouse_y1-10:self.mouse_y1+11, self.mouse_x1-10:self.mouse_x1+11, :])[0,0,0,0]
+                pose = self.model_pose.predict(predict_image[:, self.mouse_y1-10:self.mouse_y1+11, self.mouse_x1-10:self.mouse_x1+11, :])[0,0,0]
                 tmp_vecx = [1.0, 0.0, pose[0]]
                 tmp_vecy = [0.0, 1.0, pose[1]]
                 tmp_vecz = np.cross(tmp_vecx, tmp_vecy)
                 tmp_vecz = tmp_vecz / np.linalg.norm(tmp_vecz)
-                print("cnn--- height: ", height, " pose", tmp_vecz.transpose())
-
-                data = predict_image[0, self.mouse_y1-12:self.mouse_y1+13, self.mouse_x1-12:self.mouse_x1+13, :].copy()
-                average = np.average(data)
-                cloud = np.zeros((data.shape[0] * data.shape[1], 3))
-                for y in range(data.shape[0]):
-                    for x in range(data.shape[1]):
-                        cloud[y*data.shape[1]+x, 0] = 0.01*x
-                        cloud[y*data.shape[1]+x, 1] = 0.01*y
-                        cloud[y*data.shape[1]+x, 2] = data[y, x, 0]
-                mean, eigenvectors, eigenvalues = cv2.PCACompute2(cloud, np.empty((0)))
-                n = eigenvectors[2]
-                if n[2] < 0:
-                    n = -n
-                print("pca--- height: ", average, " pose", n.transpose())
-
+                print("height: ", height, " pose: ", pose)
             tmp_image = vision_image.copy()
             self.color += 0.014
             if self.color > 2:
@@ -139,7 +120,7 @@ class SurfaceSaver:
             elif self.mouse_x1 == self.mouse_x2 and self.mouse_y1 == self.mouse_y2: #terrain
                 #cv2.circle(tmp_image, (self.mouse_x1, self.mouse_y1), 2, math.fabs(self.color-1), thickness=-1)
                 cv2.rectangle(tmp_image, (self.mouse_x1-1, self.mouse_y1-1), (self.mouse_x2+1, self.mouse_y2+1), math.fabs(self.color - 1), 1)
-                cv2.rectangle(tmp_image, (self.mouse_x1-12, self.mouse_y1-12), (self.mouse_x2+12, self.mouse_y2+12), math.fabs(self.color - 1), 1)
+                cv2.rectangle(tmp_image, (self.mouse_x1-10, self.mouse_y1-10), (self.mouse_x2+10, self.mouse_y2+10), math.fabs(self.color - 1), 1)
                 cv2.rectangle(tmp_image, (self.mouse_x1-18, self.mouse_y1-18), (self.mouse_x2+18, self.mouse_y2+18), math.fabs(self.color - 1), 1)
                 cv2.rectangle(tmp_image, (self.mouse_x1-26, self.mouse_y1-26), (self.mouse_x2+26, self.mouse_y2+26), math.fabs(self.color - 1), 1)
             else: #surface
@@ -153,8 +134,7 @@ class SurfaceSaver:
             if key == 46 or key == 8 or key == 255: #delete, backspace
                 self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                 if not self.calc_pose:
-                    self.publishPoseMsg(msg.header, 0, Marker.DELETE, np.array([0, 0, 0]), tmp_vecz, is_steppable)
-                    self.publishPoseMsg(msg.header, 1, Marker.DELETE, np.array([0, 0 ,0]), tmp_vecz, is_steppable)
+                    self.publishPoseMsg(msg.header, Marker.DELETE, np.array([(self.mouse_x1)*0.01, (self.mouse_y1-250)*0.01, height]), tmp_vecz, is_steppable)
                 print("cancel")
                 break
 
@@ -163,8 +143,7 @@ class SurfaceSaver:
             elif self.mouse_x1 == self.mouse_x2 and self.mouse_y1 == self.mouse_y2: #terrain
                 save_image = input_image[self.mouse_y1-23:self.mouse_y2+24, self.mouse_x1-23:self.mouse_x2+24]
                 if not self.calc_pose:
-                    self.publishPoseMsg(msg.header, 0, Marker.ADD, np.array([(self.mouse_x1)*0.01, (self.mouse_y1-250)*0.01, height]), tmp_vecz, is_steppable)
-                    self.publishPoseMsg(msg.header, 1, Marker.ADD, np.array([(self.mouse_x1)*0.01, (self.mouse_y1-250)*0.01, average]), n, True)
+                    self.publishPoseMsg(msg.header, Marker.ADD, np.array([(self.mouse_x1)*0.01, (self.mouse_y1-250)*0.01, height]), tmp_vecz, is_steppable)
 
                 if key == 111: #O
                     nowdate = datetime.datetime.now()
@@ -188,8 +167,7 @@ class SurfaceSaver:
                     break
             else: #surfece
                 if not self.calc_pose:
-                    self.publishPoseMsg(msg.header, 0, Marker.DELETE, np.array([0, 0, 0]), tmp_vecz, is_steppable)
-                    self.publishPoseMsg(msg.header, 1, Marker.DELETE, np.array([0, 0, 0]), tmp_vecz, is_steppable)
+                    self.publishPoseMsg(msg.header, Marker.DELETE, np.array([(self.mouse_x1)*0.01, (self.mouse_y1-250)*0.01, height]), tmp_vecz, is_steppable)
                 if key == 13: #Enter
                     if self.mouse_x1 > self.mouse_x2:
                         tmp = self.mouse_x1
