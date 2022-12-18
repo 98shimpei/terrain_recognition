@@ -30,6 +30,9 @@ from visualization_msgs.msg import Marker
 class SteppableRegionPublisher:
     def __init__(self):
         self.heightmap_config_flag = False
+        self.heightmap_update_flag = False
+        self.foot_frame_update_flag = False
+        self.cur_foot_frame = ""
         self.fixed_frame = rospy.get_param("/accumulated_steppable_region_publisher/fixed_frame", "leg_odom")
         self.grid_length = rospy.get_param("/accumulated_steppable_region_publisher/grid_length", 1.0)
         self.update_pixel_erode = rospy.get_param("/accumulated_steppable_region_publisher/update_pixel_erode", 25)
@@ -346,6 +349,7 @@ class SteppableRegionPublisher:
                     continue
                 if i == len(tri_list)-1:
                     self.convex_list.append(copy.deepcopy(now_convex))
+            self.heightmap_update_flag = True
 
         e_time = rospy.Time.now()
         if self.debug_output:
@@ -460,50 +464,59 @@ class SteppableRegionPublisher:
         if msg.l_r >= 2:
             return
         target_frame = "lleg_end_coords" if msg.l_r%2 == 1 else "rleg_end_coords"
-        try:
-            self.listener.waitForTransform(self.fixed_frame, target_frame, msg.header.stamp, rospy.Duration(1.0))
-            p, q = self.listener.lookupTransform(self.fixed_frame, target_frame, msg.header.stamp)
-            R = quaternion.as_rotation_matrix(np.quaternion(q[3], q[0], q[1], q[2]))
-            self.cur_foot_pos = np.array(p) * 100
-            self.cur_foot_rot = R
-            self.cur_foot_rot_ground = self.calcFootRotFromNormal(R, np.array([0, 0, 1]))
-            self.next_foot_pos = self.cur_foot_pos + self.cur_foot_rot_ground @ (np.array([msg.x, msg.y, msg.z]) * 100)
-        except:
-            print("tf error")
-            return
+
+        #legOdomを使っている限り同じはず
+        if self.cur_foot_frame != target_frame: 
+            try:
+                self.listener.waitForTransform(self.fixed_frame, target_frame, msg.header.stamp, rospy.Duration(1.0))
+                p, q = self.listener.lookupTransform(self.fixed_frame, target_frame, msg.header.stamp)
+                R = quaternion.as_rotation_matrix(np.quaternion(q[3], q[0], q[1], q[2]))
+                self.cur_foot_pos = np.array(p) * 100
+                self.cur_foot_rot = R
+                self.cur_foot_rot_ground = self.calcFootRotFromNormal(R, np.array([0, 0, 1]))
+                self.cur_foot_frame = target_frame
+                self.foot_frame_update_flag = True
+            except:
+                print("tf error")
+                return
+        next_foot_pos = self.cur_foot_pos + self.cur_foot_rot_ground @ (np.array([msg.x, msg.y, msg.z]) * 100)
 
         with self.lock:
             img_H = np.identity(4)
             img_H[:3, 3] = np.array([-self.accumulate_center_x, -self.accumulate_center_y, 0])
             cur_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.cur_foot_pos, 1)
-            next_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(self.next_foot_pos, 1)
+            next_tmp = np.linalg.inv(self.center_H @ img_H)[:3, :] @ np.append(next_foot_pos, 1)
             if self.accumulated_update_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] > 0.5 and self.accumulated_update_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] > 0.5: #updateしたところでなければ更新しない
                 self.cur_foot_pos[2] = self.accumulated_height_image[math.floor(cur_tmp[1]), math.floor(cur_tmp[0])] * 100
-                self.next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
+                next_foot_pos[2] = self.accumulated_height_image[math.floor(next_tmp[1]), math.floor(next_tmp[0])] * 100
 
             cur_foot_ground_H = np.identity(4)
             cur_foot_ground_H[:3, :3] = self.cur_foot_rot_ground
             cur_foot_ground_H[:3, 3] = self.cur_foot_pos
-            sr = SteppableRegion()
-            sr.header = copy.deepcopy(msg.header)
-            sr.header.frame_id = target_frame
-            sr.l_r = msg.l_r
 
-            for v in self.convex_list:
-                ps = PolygonStamped()
-                ps.header = sr.header
-                p32 = Point32()
-                for p in v:
-                    tmp = np.array([p.x - self.trim_center_x, p.y - self.trim_center_y, self.accumulated_height_image[math.floor(p.y - self.trim_center_y + self.accumulate_center_y), math.floor(p.x - self.trim_center_x + self.accumulate_center_x)] * 100.0, 1])
-                    if tmp[2] < -1e+10:
-                        tmp[2] = 0
-                    tmp = np.linalg.inv(cur_foot_ground_H) @ self.center_H @ tmp
-                    tmp = tmp * 0.01
-                    p32.x = tmp[0]
-                    p32.y = tmp[1]
-                    p32.z = tmp[2]
-                    ps.polygon.points.append(copy.deepcopy(p32))
-                sr.polygons.append(copy.deepcopy(ps))
+            if self.heightmap_update_flag or self.foot_frame_update_flag:
+                sr = SteppableRegion()
+                sr.header = copy.deepcopy(msg.header)
+                sr.header.frame_id = target_frame
+                sr.l_r = msg.l_r
+                for v in self.convex_list:
+                    ps = PolygonStamped()
+                    ps.header = sr.header
+                    p32 = Point32()
+                    for p in v:
+                        tmp = np.array([p.x - self.trim_center_x, p.y - self.trim_center_y, self.accumulated_height_image[math.floor(p.y - self.trim_center_y + self.accumulate_center_y), math.floor(p.x - self.trim_center_x + self.accumulate_center_x)] * 100.0, 1])
+                        if tmp[2] < -1e+10:
+                            tmp[2] = 0
+                        tmp = np.linalg.inv(cur_foot_ground_H) @ self.center_H @ tmp
+                        tmp = tmp * 0.01
+                        p32.x = tmp[0]
+                        p32.y = tmp[1]
+                        p32.z = tmp[2]
+                        ps.polygon.points.append(copy.deepcopy(p32))
+                    sr.polygons.append(copy.deepcopy(ps))
+                self.region_publisher.publish(sr)
+                self.heightmap_update_flag = False
+                self.foot_frame_update_flag = False
 
             ps = OnlineFootStep()
             ps.header = copy.deepcopy(msg.header)
@@ -525,7 +538,7 @@ class SteppableRegionPublisher:
             ps.ny = tmp_vecz[1]
             ps.nz = tmp_vecz[2]
 
-            tmp_pos = (self.cur_foot_rot_ground.transpose() @ (self.next_foot_pos - self.cur_foot_pos)) * 0.01
+            tmp_pos = (self.cur_foot_rot_ground.transpose() @ (next_foot_pos - self.cur_foot_pos)) * 0.01
             tmp_pos[2] = tmp_pos[2] if math.fabs(tmp_pos[2]) < 0.4 else 0
             ps.x = tmp_pos[0]
             ps.y = tmp_pos[1]
@@ -559,7 +572,6 @@ class SteppableRegionPublisher:
             pose_msg.scale.y = 0.05
             pose_msg.scale.z = 0.07
             pose_msg.pose.orientation.w = 1.0
-        self.region_publisher.publish(sr)
         self.height_publisher.publish(ps)
         self.landing_pose_publisher.publish(pose_msg)
 
