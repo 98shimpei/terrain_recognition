@@ -49,7 +49,7 @@ def generate_ydata(x_data):
     for y in range(center_data.shape[0]):
         for x in range(center_data.shape[1]):
             distance = np.dot(np.array([x, y, center_data[y, x] * 100.0]) - a, n)
-            if distance > -2.3: #許容凹凸量(cm)
+            if distance > -2.5: #許容凹凸量(cm)
                 contact_region[y,x] = 255
     contours, hierarchy = cv2.findContours(contact_region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     tmp_array = np.empty((0, 2), dtype=np.int32)
@@ -60,7 +60,7 @@ def generate_ydata(x_data):
         y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n), 0])
     else:
         cvhull = cv2.convexHull(tmp_array)
-        if not(cv2.pointPolygonTest(cvhull, (3, 6), False) >= 0 and cv2.pointPolygonTest(cvhull, (3, 16), False) >= 0 and cv2.pointPolygonTest(cvhull, (6, 3), False) >= 0 and cv2.pointPolygonTest(cvhull, (16, 3), False) >= 0 and cv2.pointPolygonTest(cvhull, (19, 6), False) >= 0 and cv2.pointPolygonTest(cvhull, (19, 16), False) >= 0 and cv2.pointPolygonTest(cvhull, (6, 19), False) >= 0 and cv2.pointPolygonTest(cvhull, (16, 19), False) >= 0): #十分な広さの接触凸包があるかどうか
+        if not(cv2.pointPolygonTest(cvhull, (4, 6), False) >= 0 and cv2.pointPolygonTest(cvhull, (4, 16), False) >= 0 and cv2.pointPolygonTest(cvhull, (6, 4), False) >= 0 and cv2.pointPolygonTest(cvhull, (16, 4), False) >= 0 and cv2.pointPolygonTest(cvhull, (18, 6), False) >= 0 and cv2.pointPolygonTest(cvhull, (18, 16), False) >= 0 and cv2.pointPolygonTest(cvhull, (6, 18), False) >= 0 and cv2.pointPolygonTest(cvhull, (16, 18), False) >= 0): #十分な広さの接触凸包があるかどうか
             y_data = np.array([0, n[0], n[1], n[2], -0.01 * np.dot(np.array([11, 11, 0]) - a, n) / np.dot(np.array([0,0,1]), n), 1])
         else:
             #周りに遊脚を阻害する障害物があるかどうか
@@ -90,15 +90,15 @@ for num in range(int(args[1])):
         theta = random.random() * 360
         M = cv2.getRotationMatrix2D((math.floor(x_data.shape[1] / 2.), math.floor(x_data.shape[0] / 2.)), theta, 1)
         x_data = cv2.warpAffine(x_data, M, (x_data.shape[1], x_data.shape[0]))
-    if random.random() < 0.3: #足平内の溝
-        begin, end = np.sort([15 + math.floor(random.random()*(23)), 15 + math.floor(random.random()*(23))])
+    if random.random() < 0.25: #足平近くの溝
+        begin, end = np.sort([12 + math.floor(random.random()*(29)), 12 + math.floor(random.random()*(29))])
         height = -np.random.random() * 0.15
         x_data[begin:end, :] += height * np.ones((end - begin, x_data.shape[1]))
         theta = random.random() * 360
         M = cv2.getRotationMatrix2D((math.floor(x_data.shape[1] / 2.), math.floor(x_data.shape[0] / 2.)), theta, 1)
         x_data = cv2.warpAffine(x_data, M, (x_data.shape[1], x_data.shape[0]))
-    if random.random() < 0.3: #足平内の溝
-        begin, end = np.sort([15 + math.floor(random.random()*(23)), 15 + math.floor(random.random()*(23))])
+    if random.random() < 0.25: #足平近くの溝
+        begin, end = np.sort([12 + math.floor(random.random()*(29)), 12 + math.floor(random.random()*(29))])
         height = -np.random.random() * 0.15
         x_data[begin:end, :] += height * np.ones((end - begin, x_data.shape[1]))
         theta = random.random() * 360
@@ -119,12 +119,14 @@ for num in range(int(args[1])):
         if random.random() < 0.7: #長方形溝
             begin, end = np.sort([math.floor(random.random()*(54)), math.floor(random.random()*(54))])
             if begin == end:
+            #if end - begin < 5:
                 continue
             h = random.random() * 0.6 - 0.3
             x_data[begin:end, :] += h
         else: #台形溝
             begin, mid1, mid2, end = np.sort([math.floor(random.random()*54), math.floor(random.random()*54), math.floor(random.random()*54), math.floor(random.random()*54)])
             if begin == end:
+            #if end - begin < 7:
                 continue
             h = random.random() * 0.6 - 0.3
             for i in range(begin, mid1):

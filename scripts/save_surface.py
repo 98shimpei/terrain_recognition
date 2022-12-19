@@ -161,7 +161,7 @@ class SurfaceSaver:
             if self.mouse_x2 < 0 or self.mouse_y2 < 0: #未選択
                 pass
             elif self.mouse_x1 == self.mouse_x2 and self.mouse_y1 == self.mouse_y2: #terrain
-                save_image = input_image[self.mouse_y1-23:self.mouse_y2+24, self.mouse_x1-23:self.mouse_x2+24]
+                save_image = input_image[self.mouse_y1-26:self.mouse_y2+27, self.mouse_x1-26:self.mouse_x2+27]
                 if not self.calc_pose:
                     self.publishPoseMsg(msg.header, 0, Marker.ADD, np.array([(self.mouse_x1)*0.01, (self.mouse_y1-250)*0.01, height]), tmp_vecz, is_steppable)
                     self.publishPoseMsg(msg.header, 1, Marker.ADD, np.array([(self.mouse_x1)*0.01, (self.mouse_y1-250)*0.01, average]), n, True)
@@ -169,14 +169,14 @@ class SurfaceSaver:
                 if key == 111: #O
                     nowdate = datetime.datetime.now()
                     np.savetxt("../terrains/x/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
-                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.array([1.0, 0.0, 0.0, 1.0, 0.0]), delimiter=",")
+                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.array([1.0, 0.0, 0.0, 1.0, 0.0, 0]), delimiter=",")
                     self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                     print("save steppable image")
                     break
                 elif key == 120: #X
                     nowdate = datetime.datetime.now()
                     np.savetxt("../terrains/x/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", save_image, delimiter=",")
-                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.array([-1.0, 0.0, 0.0, 1.0, 0.0]), delimiter=",")
+                    np.savetxt("../terrains/y/"+args[1]+nowdate.strftime('%y%m%d_%H%M%S')+".csv", np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0]), delimiter=",")
                     self.mouse_x1 = self.mouse_x2 = self.mouse_y1 = self.mouse_y2 = -1
                     print("save steppable image")
                     break
