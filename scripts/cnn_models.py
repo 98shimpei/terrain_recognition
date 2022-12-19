@@ -51,8 +51,13 @@ def cnn_pose(input_shape, checkpoint_path): #25->11->7->1
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.ReLU())
 
+    # conv3
+    model.add(tef.keras.layers.Conv2D(32, (5, 5)))
+    model.add(tef.keras.layers.BatchNormalization())
+    model.add(tef.keras.layers.ReLU())
+
     # conv4
-    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
+    model.add(tef.keras.layers.Conv2D(16, (3, 3)))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.Dense(2, activation='linear'))
 
@@ -77,8 +82,13 @@ def cnn_height(input_shape, checkpoint_path):
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.ReLU())
 
+    # conv2
+    model.add(tef.keras.layers.Conv2D(32, (5, 5)))
+    model.add(tef.keras.layers.BatchNormalization())
+    model.add(tef.keras.layers.ReLU())
+
     # conv4
-    model.add(tef.keras.layers.Conv2D(16, (7, 7)))
+    model.add(tef.keras.layers.Conv2D(32, (3, 3)))
     model.add(tef.keras.layers.BatchNormalization())
     model.add(tef.keras.layers.Dense(1, activation='linear'))
 

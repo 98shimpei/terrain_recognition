@@ -57,7 +57,7 @@ def generate_data(num):
         #terrain
         if i < num*1.0:
             terrain_index = math.floor(random.random()*len(terrains_x))
-            while (terrains_y[terrain_index][0] == -1):
+            while (terrains_y[terrain_index][5] < 0.5):
                 terrain_index = math.floor(random.random()*len(terrains_x))
             x_data[i, :, :, 0] += terrains_x[terrain_index]
             y_tmp = terrains_y[terrain_index]
@@ -186,6 +186,16 @@ print("pose  train mae: ", test_mae)
 if "v" in args[3]:
     cv2.imshow('test',x_test[0] * 1.0 + 0.5)
     cv2.waitKey(1)
+
+    hoge = np.ones((1, 25, 25, 1)) * 0.1
+    print(model_pose.predict(hoge))
+    print(model_height.predict(hoge))
+    hoge[0, 3:6, :, 0] = np.zeros((3, 25))
+    print(model_pose.predict(hoge))
+    print(model_height.predict(hoge))
+    hoge[0, :, 2:7, 0] = np.zeros((25, 5))
+    print(model_pose.predict(hoge))
+    print(model_height.predict(hoge))
 
     for i in range(1):
         print("answer")
