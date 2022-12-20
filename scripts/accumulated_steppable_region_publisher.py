@@ -32,6 +32,7 @@ class SteppableRegionPublisher:
         self.heightmap_config_flag = False
         self.heightmap_update_flag = False
         self.foot_frame_update_flag = False
+        self.first_accumulate_flag = False
         self.cur_foot_frame = ""
         self.fixed_frame = rospy.get_param("/accumulated_steppable_region_publisher/fixed_frame", "leg_odom")
         self.grid_length = rospy.get_param("/accumulated_steppable_region_publisher/grid_length", 1.0)
@@ -202,10 +203,35 @@ class SteppableRegionPublisher:
             tmp_x = self.accumulate_center_x + self.heightmap_minx
             tmp_y = self.accumulate_center_y + self.heightmap_miny
             self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_steppable_img * update_pixel + self.accumulated_steppable_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
-            #高さだけ平行移動対応する
-            diff_img = cnn_height_img * update_pixel - self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * update_pixel
-            diff_value = np.median(diff_img[(update_pixel*(np.abs(diff_img)<0.1))>0.5]) #update_pixelかつ誤差が0.1m以下のものの中央値
-            self.accumulated_height_image += diff_value
+
+            ####高さだけ平行移動対応する
+            #diff_img = cnn_height_img * update_pixel - self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * update_pixel
+            #diff_value = np.median(diff_img[(update_pixel*(np.abs(diff_img)<0.1))>0.5]) #update_pixelかつ誤差が0.1m以下のものの中央値
+            #self.accumulated_height_image += diff_value
+
+            if self.first_accumulate_flag:
+                ####高さだけロールピッチ平行移動対応する
+                #重回帰分析に用いる３要素
+                erode_update_pixel = cv2.erode(update_pixel * self.accumulated_update_image[tmp_y:tmp_y+msg.height, tmp_x:tmp_x+msg.width], np.ones((7, 7), np.uint8))
+                pitch = np.tile(np.arange(self.accumulated_height_image.shape[1]), (self.accumulated_height_image.shape[0], 1))
+                roll = np.tile(np.arange(self.accumulated_height_image.shape[0]), (self.accumulated_height_image.shape[1], 1)).T
+                scale = np.ones(self.accumulated_height_image.shape)
+                #diffを計算し、重回帰分析を行う
+                diff = cnn_height_img - self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width]
+                erode_update_pixel[diff>0.5] = 0 #0.5m以上変わっている場所は無視(人とか)
+                data = np.dstack((pitch[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width], roll[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width], scale[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width], diff, erode_update_pixel)).reshape(-1,5)
+                use_data = data[data[:,4]==1]
+                ans = np.linalg.lstsq(use_data[:,:3], use_data[:,3], rcond=None)[0]
+                #外れ値（環境が変わったところ、新しく見えたところ）を除いてもう一度重回帰分析
+                diff_diff = np.abs(diff - pitch[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width] * ans[0] - roll[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width] * ans[1] - scale[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width] * ans[2])
+                index = np.argsort(-diff_diff.reshape((-1)))
+                data[index[:(int)(np.sum(erode_update_pixel)/3)], 4] = 0
+                use_data = data[data[:,4]==1]
+                ans = np.linalg.lstsq(use_data[:,:3], use_data[:,3], rcond=None)[0]
+                self.accumulated_height_image += pitch * ans[0] + roll * ans[1] + scale * ans[2]
+            else:
+                self.first_accumulate_flag = True
+
             self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_height_img * update_pixel + self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - update_pixel)
             self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] = cnn_pose_img * np.dstack((update_pixel, update_pixel)) + self.accumulated_pose_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width] * (1 - np.dstack((update_pixel, update_pixel)))
             current_yaw_img = np.ones((msg.height, msg.width)) * np.arctan2(self.center_H[1, 0], self.center_H[0, 0])
