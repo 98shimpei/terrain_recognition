@@ -218,7 +218,7 @@ class SteppableRegionPublisher:
                 scale = np.ones(self.accumulated_height_image.shape)
                 #diffを計算し、重回帰分析を行う
                 diff = cnn_height_img - self.accumulated_height_image[tmp_y : tmp_y + msg.height, tmp_x : tmp_x + msg.width]
-                erode_update_pixel[diff>0.5] = 0 #0.5m以上変わっている場所は無視(人とか)
+                erode_update_pixel[np.abs(diff)>0.1] = 0 #0.1m以上変わっている場所は無視(人とか)
                 data = np.dstack((pitch[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width], roll[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width], scale[tmp_y:tmp_y+msg.height,tmp_x:tmp_x+msg.width], diff, erode_update_pixel)).reshape(-1,5)
                 use_data = data[data[:,4]==1]
                 ans = np.linalg.lstsq(use_data[:,:3], use_data[:,3], rcond=None)[0]
