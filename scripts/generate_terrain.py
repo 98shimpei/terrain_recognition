@@ -104,7 +104,7 @@ for num in range(int(args[1])):
         theta = random.random() * 360
         M = cv2.getRotationMatrix2D((math.floor(x_data.shape[1] / 2.), math.floor(x_data.shape[0] / 2.)), theta, 1)
         x_data = cv2.warpAffine(x_data, M, (x_data.shape[1], x_data.shape[0]))
-    if random.random() < 0.4: #浅い地形変更
+    if random.random() < 0.6: #浅い地形変更
         for i in range(math.floor(random.random() * 50)):
             center_x = np.floor(np.random.random() * 61.0 - 4.0)
             center_y = np.floor(np.random.random() * 61.0 - 4.0)
@@ -115,7 +115,7 @@ for num in range(int(args[1])):
             for y in range(x_data.shape[0]):
                 for x in range(x_data.shape[1]):
                     x_data[y, x] += max(0, (circle_length**2 - (y_range * (y - center_y)**2 + x_range * (x - center_x)**2)) / circle_length**2) * center_height
-    for i in range(math.floor(random.random() * 1.7 + 0.8)):
+    for i in range(math.floor(random.random() * 2.3 + 0.2)):
         if random.random() < 0.7: #長方形溝
             begin, end = np.sort([math.floor(random.random()*(54)), math.floor(random.random()*(54))])
             if begin == end:

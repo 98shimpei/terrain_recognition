@@ -60,8 +60,8 @@ def generate_data(num):
         if i < num*1.0:
             terrain_index = math.floor(random.random()*len(terrains_x))
             #while (terrains_y[terrain_index][0] != 1):
-            while (terrains_y[terrain_index][0] == -1):#着地不可能領域を含める
-                terrain_index = math.floor(random.random()*len(terrains_x))
+            #while (terrains_y[terrain_index][0] == -1):#着地不可能領域を含める
+            #    terrain_index = math.floor(random.random()*len(terrains_x))
             x_data[i, :, :, 0] += terrains_x[terrain_index]
             y_tmp = terrains_y[terrain_index]
             y_n = np.array([y_tmp[1], y_tmp[2], y_tmp[3]])
@@ -180,34 +180,34 @@ for i in range(x_train.shape[0]):
     cnn_pose_diff += answer_n.dot(cnn_n)
     pca_pose_diff += answer_n.dot(n)
 
-    #print(-n[0]/n[2], -n[1]/n[2], average)
-    #print(y_train[i])
-    #print(cnn_pose_y, cnn_height_y)
+    print(-n[0]/n[2], -n[1]/n[2], average)
+    print(y_train[i])
+    print(cnn_pose_y, cnn_height_y)
 
-    #answercloud = np.zeros((data.shape[0] * data.shape[1], 3))
-    #cnncloud = np.zeros((data.shape[0] * data.shape[1], 3))
-    #pcacloud = np.zeros((data.shape[0] * data.shape[1], 3))
-    #for y in range(data.shape[0]):
-    #    for x in range(data.shape[1]):
-    #        answercloud[y*data.shape[1]+x, 0] = 0.01*x
-    #        answercloud[y*data.shape[1]+x, 1] = 0.01*y
-    #        answercloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*y_train[i,0,0,0] + (y-12)*y_train[i,0,0,1])+y_train[i,0,0,2]
-    #        pcacloud[y*data.shape[1]+x, 0] = 0.01*x
-    #        pcacloud[y*data.shape[1]+x, 1] = 0.01*y
-    #        pcacloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*(-n[0]/n[2]) + (y-12)*(-n[1]/n[2]))+average
-    #        cnncloud[y*data.shape[1]+x, 0] = 0.01*x
-    #        cnncloud[y*data.shape[1]+x, 1] = 0.01*y
-    #        cnncloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*cnn_pose_y[0,0,0,0] + (y-12)*cnn_pose_y[0,0,0,1])+cnn_height_y[0,0,0,0]
-    #
-    #fig = plt.figure()
-    #ax = fig.add_subplot(projection='3d')
-    #ax.scatter(cloud[:,0], cloud[:,1], cloud[:,2] - average, label="data")
+    answercloud = np.zeros((data.shape[0] * data.shape[1], 3))
+    cnncloud = np.zeros((data.shape[0] * data.shape[1], 3))
+    pcacloud = np.zeros((data.shape[0] * data.shape[1], 3))
+    for y in range(data.shape[0]):
+        for x in range(data.shape[1]):
+            answercloud[y*data.shape[1]+x, 0] = 0.01*x
+            answercloud[y*data.shape[1]+x, 1] = 0.01*y
+            answercloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*y_train[i,0,0,0] + (y-12)*y_train[i,0,0,1])+y_train[i,0,0,2]
+            pcacloud[y*data.shape[1]+x, 0] = 0.01*x
+            pcacloud[y*data.shape[1]+x, 1] = 0.01*y
+            pcacloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*(-n[0]/n[2]) + (y-12)*(-n[1]/n[2]))+average
+            cnncloud[y*data.shape[1]+x, 0] = 0.01*x
+            cnncloud[y*data.shape[1]+x, 1] = 0.01*y
+            cnncloud[y*data.shape[1]+x, 2] = 0.01*((x-12)*cnn_pose_y[0,0,0,0] + (y-12)*cnn_pose_y[0,0,0,1])+cnn_height_y[0,0,0,0]
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(cloud[:,0], cloud[:,1], cloud[:,2] - average, label="data")
     #ax.scatter(answercloud[:,0], answercloud[:,1], answercloud[:,2] - average, label="correct")
     #ax.scatter(cnncloud[:,0], cnncloud[:,1], cnncloud[:,2] - average, label="cnn")
     #ax.scatter(pcacloud[:,0], pcacloud[:,1], pcacloud[:,2] - average, label="pca")
-    #ax.set_zlim(-0.1, 0.1)
-    #ax.legend(bbox_to_anchor=(0, 0), loc='upper left')
-    #plt.show()
+    ax.set_zlim(-0.1, 0.1)
+    ax.legend(bbox_to_anchor=(0, 0), loc='upper left')
+    plt.show()
 
 print(cnn_height_diff/x_train.shape[0], pca_height_diff/x_train.shape[0])
 print((cnn_pose_diff)/x_train.shape[0], (pca_pose_diff)/x_train.shape[0])

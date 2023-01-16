@@ -71,9 +71,15 @@ def generate_data(num):
         x_data[i, :, :, 0] += surfaces[surface_index][surface_y:surface_y+53, surface_x:surface_x+53]
 
         #tilt
-        p = 2.0*random.random() - 1.0 #最大45度
-        r = 2.0*random.random() - 1.0 #最大45度
+        theta2 = np.deg2rad(np.random.random() * 360.0)
+        #theta2 = np.random.random() * 360.0
+        angle = 2.0*random.random() - 1.0
+        p = angle * np.cos(theta2) / (np.abs(np.cos(theta2)) + np.abs(np.sin(theta2))) #最大45度
+        r = angle * np.sin(theta2) / (np.abs(np.cos(theta2)) + np.abs(np.sin(theta2))) #最大45度
         s = 1.0*random.random() - 0.5
+        #p=0
+        #r=0
+        #s=0
         x_data[i] += p * pitch + r * roll + s * scale# + 0.05*np.random.rand(53, 53, 1) - 0.025 * np.ones((53, 53, 1))
 
         #check steppability
@@ -93,7 +99,7 @@ def generate_data(num):
     return x_data, y_data
 
 x_train, y_train = generate_data(int(args[1]))
-x_test, y_test = generate_data(100)
+x_test, y_test = generate_data(1000)
 
 #----------------------------
 # 学習
@@ -133,6 +139,37 @@ print('Test data accuracy:', test_accuracy)
 
 if "v" in args[3]:
     cv2.imshow('test',x_test[0] * 1.0 + 0.5)
+
+    Pp = 0
+    Nn = 0
+    Pn = 0
+    Np = 0
+    Psum = 0
+    Nsum = 0
+    psum = 0
+    nsum = 0
+    for i in range(x_train.shape[0]):
+        yval = y_train[i]
+        xval = np.argmax(model_steppable_region.predict(x_train[i:i+1]), axis=3)
+        if yval == 0:
+            Nsum += 1
+        else:
+            Psum += 1
+        if xval == 0:
+            nsum += 1
+        else:
+            psum += 1
+
+        if yval == 1 and xval == 1:
+            Pp += 1
+        elif yval == 1 and xval == 0:
+            Pn += 1
+        elif yval == 0 and xval == 1:
+            Np += 1
+        elif yval == 0 and xval == 0:
+            Nn += 1
+    print(Psum, Nsum, psum, nsum)
+    print(Pp, Pn, Np, Nn)
 
     for i in range(18):
         hoge_train = np.zeros((1, 37, 37, 1))
