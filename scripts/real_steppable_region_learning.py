@@ -26,10 +26,12 @@ terrains_x = []
 terrains_y = []
 surfaces = []
 for filename in os.listdir("../terrains/x"):
-    terrains_x.append(np.loadtxt("../terrains/x/"+filename, delimiter=","))
-    terrains_y.append(np.loadtxt("../terrains/y/"+filename, delimiter=","))
+    if not filename.startswith("."):
+        terrains_x.append(np.loadtxt("../terrains/x/"+filename, delimiter=","))
+        terrains_y.append(np.loadtxt("../terrains/y/"+filename, delimiter=","))
 for filename in os.listdir("../surfaces"):
-    surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
+    if not filename.startswith("."):
+        surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
 
 pitch = np.zeros((53, 53, 1))
 roll  = np.zeros((53, 53, 1))

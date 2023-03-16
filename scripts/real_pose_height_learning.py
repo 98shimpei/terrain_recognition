@@ -24,12 +24,15 @@ terrains_y = []
 pose_terrains = []
 surfaces = []
 for filename in os.listdir("../terrains/x"):
-    terrains_x.append(np.loadtxt("../terrains/x/"+filename, delimiter=","))
-    terrains_y.append(np.loadtxt("../terrains/y/"+filename, delimiter=","))
+    if not filename.startswith("."):
+        terrains_x.append(np.loadtxt("../terrains/x/"+filename, delimiter=","))
+        terrains_y.append(np.loadtxt("../terrains/y/"+filename, delimiter=","))
 for filename in os.listdir("../surfaces"):
-    surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
+    if not filename.startswith("."):
+        surfaces.append(np.loadtxt("../surfaces/"+filename, delimiter=","))
 for filename in os.listdir("../terrains/pose"):
-    pose_terrains.append(np.loadtxt("../terrains/pose/"+filename, delimiter=","))
+    if not filename.startswith("."):
+        pose_terrains.append(np.loadtxt("../terrains/pose/"+filename, delimiter=","))
 
 #----------------------------
 # データの作成
